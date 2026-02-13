@@ -1,0 +1,8 @@
+[
+{
+  "directory": "/home/michael/Desktop/Static OOP/MIPT OOP Study/2 task (c++)/build",
+  "command": "/usr/bin/c++  -I\"/home/michael/Desktop/Static OOP/MIPT OOP Study/2 task (c++)/include\" -g -std=c++17 -o CMakeFiles/inheritance.dir/src/main.cpp.o -c \"/home/michael/Desktop/Static OOP/MIPT OOP Study/2 task (c++)/src/main.cpp\"",
+  "file": "/home/michael/Desktop/Static OOP/MIPT OOP Study/2 task (c++)/src/main.cpp",
+  "output": "CMakeFiles/inheritance.dir/src/main.cpp.o"
+}
+]

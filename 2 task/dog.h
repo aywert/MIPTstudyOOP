@@ -6,14 +6,16 @@
 #include <assert.h>
 
 #include "animal.h"
+#include "string.h"
 
 struct dog {
   struct animal Super;
+  int teeth;
 };
 
-struct animal* dog_create();
-//struct dog* dog_create_with_name(char* name, char* sound);
-void dog_destroy(struct animal* ptr);
-void dog_voice(void* ptr); 
+void dog_create(void* );
+void dog_destroy(void*);
+void dog_voice(void* ); 
+void dog_bite(void* ); 
 
 #endif

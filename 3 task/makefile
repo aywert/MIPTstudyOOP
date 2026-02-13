@@ -4,7 +4,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -std=c99
 
 NAMEEXE := main
-OBJFILES := main.o cat.o dog.o obj.o 
+OBJFILES := main.o cat.o dog.o
 
 # Добавляем build/ к именам файлов
 BUILD_DIR := build

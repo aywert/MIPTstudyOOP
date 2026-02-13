@@ -9,12 +9,11 @@
 
 struct cat {
   struct animal Super;
-  int claws;
 };
 
-void cat_create(void* );
-void cat_destroy(void*);
-void cat_voice(void* ); 
-void cat_scratch(void* ); 
+struct animal* cat_create();
+void cat_destroy(struct animal* ptr);
+void cat_voice(void* ptr); 
+void cat_scratch(void* ptr); 
 
 #endif
