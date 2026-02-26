@@ -18,6 +18,7 @@ struct MyPyObj* create_obj(Node* node, struct MyPyType* type); //everything is a
 struct MyPyObj* process_tree(Node* root, struct MyPyType* type);
 size_t search_in_globalNS(struct pair* space, struct pair p);
 void put_in_globalNS(struct pair p);
+struct MyPyObj* get_from_globalNS(const char* name);
 
 int main (void) {
   FILE* file = fopen("INPUT.txt", "r");
@@ -52,48 +53,55 @@ int main (void) {
   //Проходимся по построенному дереву
   process_tree(root, MyIntType);
 
-
   destroy_MyPyType(MyIntType); //уничтожаем тип инта
   
   return 0;
 } 
 
 struct MyPyObj* process_tree(Node* root, struct MyPyType* type) {
-    if (!root) return NULL;
+  if (!root) return NULL;
 
-    switch(root->type) {
-        case TOKEN_ASSIGN:
-          printf("assign\n");
-          return assignment(root, type); 
-        case TOKEN_PLUS: 
-          printf("plus\n");
-          return plus_tree(root, type); // Вызываем функцию суммирования
-        case TOKEN_NUMBER:
-        case TOKEN_IDENTIFIER:
-            printf("identifierr or number\n");
-            return create_obj(root, type);
-        // case TOKEN_BLOCK: // Узел, соединяющий строки
-        //     process_tree(root->left, type);
-        //     return process_tree(root->right, type);
-        default:
-            printf("default\n");
-            if (root->left) process_tree(root->left, type);
-            if (root->right) process_tree(root->right, type);
-            return NULL;
+  switch(root->type) {
+    case TOKEN_ASSIGN:
+      printf("assign\n");
+      return assignment(root, type); 
+    case TOKEN_PLUS: 
+      printf("plus\n");
+      return plus_tree(root, type);
+    case TOKEN_NUMBER: return create_obj(root, type);
+    case TOKEN_IDENTIFIER: {
+      printf("identifierr or number\n");
+      struct MyPyObj* gv_sample = get_from_globalNS(root->value);
+      if (gv_sample) return gv_sample; 
+
+      fprintf(stderr, "NameError: name '%s' is not defined\n", root->value);
+      return NULL;
     }
+    // case TOKEN_BLOCK: // Узел, соединяющий строки
+    //     process_tree(root->left, type);
+    //     return process_tree(root->right, type);
+    default:
+      printf("default\n");
+      if (root->left) process_tree(root->left, type);
+      if (root->right) process_tree(root->right, type);
+      return NULL;
+  }
 }
 
 struct MyPyObj* assignment(Node* root, struct MyPyType* type) {
   if (!root || !root->left || !root->right) return NULL;
 
-  // 1. Вычисляем правую часть (там может быть "1 + 3" или просто "5")
   struct MyPyObj* value_obj = process_tree(root->right, type);
   
+  if (!value_obj) {
+    MyPy_Decref(value_obj);
+    return NULL;
+  }
   // 2. Левая часть — это имя переменной
   if (root->left->type == TOKEN_IDENTIFIER) {
-      struct pair tmp = {root->left->value, value_obj};
-      put_in_globalNS(tmp);
-      printf("Assigned %s = %d\n", tmp.var_name, ((struct MyPyIntObj*)value_obj)->value);
+    struct pair tmp = {root->left->value, value_obj};
+    put_in_globalNS(tmp);
+    printf("Assigned %s = %d\n", tmp.var_name, ((struct MyPyIntObj*)value_obj)->value);
   }
   return value_obj;
 }
@@ -102,10 +110,14 @@ struct MyPyObj* plus_tree(Node* node, struct MyPyType* type) {
   if (!node) return NULL;
 
   // Вычисляем левую и правую части (там могут быть еще плюсы или числа)
-  struct MyPyObj* left_obj = process_tree(node->left, type);
+  struct MyPyObj* left_obj  = process_tree(node->left, type);
   struct MyPyObj* right_obj = process_tree(node->right, type);
 
-  if (!left_obj || !right_obj) return NULL;
+  if (!left_obj || !right_obj) {
+    MyPy_Decref(left_obj);
+    MyPy_Decref(right_obj);
+    return NULL;
+  }
 
   int left_val = ((struct MyPyIntObj*)left_obj)->value;
   int right_val = ((struct MyPyIntObj*)right_obj)->value;
@@ -113,6 +125,9 @@ struct MyPyObj* plus_tree(Node* node, struct MyPyType* type) {
   // Создаем новый временный объект для результата
   struct MyPyObj* res_obj = MyPy_NewObject(type);
   ((struct MyPyIntObj*)res_obj)->value = left_val + right_val;
+  
+  MyPy_Decref(left_obj);
+  MyPy_Decref(right_obj);
 
   return res_obj;
   
@@ -131,14 +146,11 @@ struct MyPyObj* create_obj(Node* node, struct MyPyType* type) {
   //making note in global namespace about new identifier
   if (node->type == TOKEN_IDENTIFIER) {
     struct pair tmp = {node->value, obj};
-    size_t index = search_in_globalNS(GlobalNamespace, tmp);
-    if (index != 666)
-      GlobalNamespace[GlobalNS_index++] = tmp;
+    put_in_globalNS(tmp); 
   }
 
   return obj;
 }
-
 
 size_t search_in_globalNS(struct pair* space, struct pair p) {
   for (size_t i = 0; i < 10; i++) {
@@ -158,5 +170,22 @@ void put_in_globalNS(struct pair p) {
   size_t index = search_in_globalNS(GlobalNamespace, p);
   if (index != 666) {
     GlobalNamespace[index] = p;
+    GlobalNS_index++;
+    MyPy_Incref(p.obj); //namespace remembering the obj
   }
+}
+
+struct MyPyObj* get_from_globalNS(const char* name) {
+  if (!name) return NULL;
+
+  for (size_t i = 0; i < GlobalNS_index; i++) {
+    if (GlobalNamespace[i].var_name != NULL) { 
+      if (strcmp(GlobalNamespace[i].var_name, name) == 0) {
+        struct MyPyObj* obj = GlobalNamespace[i].obj;
+        MyPy_Incref(obj); 
+        return obj;
+      }
+    }
+  }
+  return NULL; 
 }
