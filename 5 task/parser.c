@@ -4,6 +4,7 @@ size_t get_token_buffer(Token* buffer, Lexer* lexer) {
   size_t index = 0;
   Token current = lexer_next_token(lexer);
   while (index < 1024 && current.type!=TOKEN_ERROR && current.type!=TOKEN_EOF) {
+   
     buffer[index++] = current;
     current = lexer_next_token(lexer);
   }
@@ -19,9 +20,9 @@ void lexer_init(Lexer* lexer, const char* source) {
 }
 
 void lexer_skip_whitespace(Lexer* lexer) {
-  while (lexer->current_char != '\0' && 
-      (lexer->current_char == ' ' || lexer->current_char == '\t' || 
-      lexer->current_char == '\n')) {
+  while (lexer->current_char != '\0' && lexer->current_char != EOF &&(lexer->current_char == ' ' || lexer->current_char == '\t' || 
+         lexer->current_char == '\n')) 
+  {
     if (lexer->current_char == '\n')
       lexer->line++;
     lexer->position++;
@@ -29,13 +30,14 @@ void lexer_skip_whitespace(Lexer* lexer) {
   }
 }
 
+
+
 Token lexer_next_token(Lexer* lexer) {
   Token token;
   token.value = NULL;
   
   lexer_skip_whitespace(lexer);
-  
-  if (lexer->current_char == '\0') {
+  if (lexer->current_char == '\0' || lexer->current_char == EOF) {
     token.type = TOKEN_EOF;
     return token;
   }
@@ -46,7 +48,7 @@ Token lexer_next_token(Lexer* lexer) {
   if (isdigit(lexer->current_char)) {
     token.type = TOKEN_NUMBER;
     int start = lexer->position;
-    while (isdigit(lexer->current_char)) {
+    while ((lexer->current_char != '\0')&& (lexer->current_char != EOF) && isdigit(lexer->current_char)) {
         lexer->position++;
         lexer->current_char = lexer->source[lexer->position];
     }
@@ -61,10 +63,12 @@ Token lexer_next_token(Lexer* lexer) {
   if (isalpha(lexer->current_char) || lexer->current_char == '_') {
     token.type = TOKEN_IDENTIFIER;
     int start = lexer->position;
-    while (isalnum(lexer->current_char) || lexer->current_char == '_') {
+    while ((lexer->current_char != '\0')&& (lexer->current_char != EOF) && 
+          (isalnum(lexer->current_char) || lexer->current_char == '_')) {
         lexer->position++;
         lexer->current_char = lexer->source[lexer->position];
     }
+
     int len = lexer->position - start;
     token.value = malloc(len + 1);
     strncpy(token.value, lexer->source + start, len);

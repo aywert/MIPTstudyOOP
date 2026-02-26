@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include "parser.h"
 #include "MyPython.h"
 #include "ast.h"
@@ -16,9 +17,10 @@ struct MyPyObj* plus_tree(Node* node, struct MyPyType* type);
 struct MyPyObj* assignment(Node* root, struct MyPyType* type);
 struct MyPyObj* create_obj(Node* node, struct MyPyType* type); //everything is an object in Python
 struct MyPyObj* process_tree(Node* root, struct MyPyType* type);
-size_t search_in_globalNS(struct pair* space, struct pair p);
-void put_in_globalNS(struct pair p);
+size_t search_in_globalNS(const char* name);
+bool put_in_globalNS(struct pair p);
 struct MyPyObj* get_from_globalNS(const char* name);
+bool decref_for_identifier(struct MyPyObj* obj);
 
 int main (void) {
   FILE* file = fopen("INPUT.txt", "r");
@@ -28,10 +30,10 @@ int main (void) {
     return 1; 
   }
 
-  char buffer[1024];
+  char buffer[1024]; memset(buffer, 0, sizeof(buffer));
 
   size_t  elem_read = fread(&buffer, sizeof(char), 1024, file);
-  printf("Прочитано элементов: %zu\n", elem_read);
+  printf("Elements read: %zu\n", elem_read);
 
   Lexer lexer;
   lexer_init(&lexer, buffer);
@@ -39,21 +41,26 @@ int main (void) {
 
   size_t index = get_token_buffer(token_buffer, &lexer);
 
-  for (size_t i = 0; i < index; i++) {
-    printf("TokenType = %d\n value = %s\n line = %d\n", 
-      token_buffer[i].type, token_buffer[i].value, token_buffer[i].line);
-  }
-
-  // Строим абстрактное дерево программы
-  Node* root = build_ast_recursive(token_buffer, index);
-
-  //подготавливаемся к производству элементов типа MyIntType
+  //create my type for mypython MyIntType
   struct MyPyType* MyIntType = create_MyPyType("MyInt", sizeof(struct MyPyIntObj), alloc, dealloc);
 
-  //Проходимся по построенному дереву
+  // Building abstract tree
+  Node* root = build_ast_recursive(token_buffer, index);
   process_tree(root, MyIntType);
+  
+  for (size_t i = 0; i < GlobalNS_index; i++) {
+    if (GlobalNamespace[i].obj) {
+      struct MyPyIntObj* int_obj = (struct MyPyIntObj*)GlobalNamespace[i].obj;
+      printf("var: %s num_of_reffs: %d value: %d\n", 
+        GlobalNamespace[i].var_name, 
+        (GlobalNamespace[i].obj)->refcount, 
+        int_obj->value);
+      MyPy_Decref(GlobalNamespace[i].obj);
+    }
+  }
 
-  destroy_MyPyType(MyIntType); //уничтожаем тип инта
+  free_tree(root);
+  destroy_MyPyType(MyIntType); //destroy type of int
   
   return 0;
 } 
@@ -77,13 +84,14 @@ struct MyPyObj* process_tree(Node* root, struct MyPyType* type) {
       fprintf(stderr, "NameError: name '%s' is not defined\n", root->value);
       return NULL;
     }
-    // case TOKEN_BLOCK: // Узел, соединяющий строки
-    //     process_tree(root->left, type);
-    //     return process_tree(root->right, type);
+    case TOKEN_BLOCK:{ // Узел, соединяющий строки
+      printf("block\n");
+      process_tree(root->left, type);
+      return process_tree(root->right, type);
+    }
+
     default:
       printf("default\n");
-      if (root->left) process_tree(root->left, type);
-      if (root->right) process_tree(root->right, type);
       return NULL;
   }
 }
@@ -94,15 +102,37 @@ struct MyPyObj* assignment(Node* root, struct MyPyType* type) {
   struct MyPyObj* value_obj = process_tree(root->right, type);
   
   if (!value_obj) {
-    MyPy_Decref(value_obj);
     return NULL;
   }
-  // 2. Левая часть — это имя переменной
+
   if (root->left->type == TOKEN_IDENTIFIER) {
-    struct pair tmp = {root->left->value, value_obj};
-    put_in_globalNS(tmp);
-    printf("Assigned %s = %d\n", tmp.var_name, ((struct MyPyIntObj*)value_obj)->value);
+    if (root->right->type == TOKEN_IDENTIFIER) {
+      struct MyPyObj* result = MyPy_NewObject(type);
+      ((struct MyPyIntObj*)result)->value = ((struct MyPyIntObj*)value_obj)->value;
+      
+      struct pair tmp = {root->left->value, result};
+      if (put_in_globalNS(tmp)) {
+        printf("Assigned %s = %d\n", tmp.var_name, ((struct MyPyIntObj*)result)->value);
+      } else {
+        printf("Failed to initialize %s as its already exists\n", tmp.var_name);
+        return NULL;
+      }
+      // Уменьшаем счетчик исходного объекта (убираем ссылку от process_tree)
+      MyPy_Decref(value_obj);
+      return result;
+    }
+
+    else {
+      struct pair tmp = {root->left->value, value_obj};
+      if (put_in_globalNS(tmp)) {
+        printf("Assigned %s = %d\n", tmp.var_name, ((struct MyPyIntObj*)value_obj)->value);
+        return value_obj;
+      } else printf("Failed to initialize %s as its already exists\n", tmp.var_name); 
+      //MyPy_Decref(value_obj);  // Очищаем при ошибке
+      return NULL;
+    }
   }
+
   return value_obj;
 }
 
@@ -152,12 +182,12 @@ struct MyPyObj* create_obj(Node* node, struct MyPyType* type) {
   return obj;
 }
 
-size_t search_in_globalNS(struct pair* space, struct pair p) {
+size_t search_in_globalNS(const char* name) {
   for (size_t i = 0; i < 10; i++) {
-    if (space[i].var_name == NULL || space[i].var_name[0] == '\0') return i;
+    if (GlobalNamespace[i].var_name == NULL || GlobalNamespace[i].var_name[0] == '\0') return i;
     else {
-      if (!strcmp(space[i].var_name, p.var_name)) {
-        printf("Name already exists!");
+      if (!strcmp(GlobalNamespace[i].var_name, name)) {
+        printf("Name already exists!\n");
         return 666;
       }
     }
@@ -166,13 +196,15 @@ size_t search_in_globalNS(struct pair* space, struct pair p) {
   return 666;
 }
 
-void put_in_globalNS(struct pair p) {
-  size_t index = search_in_globalNS(GlobalNamespace, p);
+bool put_in_globalNS(struct pair p) {
+  size_t index = search_in_globalNS(p.var_name);
   if (index != 666) {
     GlobalNamespace[index] = p;
     GlobalNS_index++;
-    MyPy_Incref(p.obj); //namespace remembering the obj
+    return true;
   }
+
+  return false;
 }
 
 struct MyPyObj* get_from_globalNS(const char* name) {
@@ -188,4 +220,15 @@ struct MyPyObj* get_from_globalNS(const char* name) {
     }
   }
   return NULL; 
+}
+
+bool decref_for_identifier(struct MyPyObj* obj) {
+  if (!obj) return NULL;
+
+  for (size_t i = 0; i < GlobalNS_index; i++) {
+    if (GlobalNamespace[i].obj == obj) {
+      return true;
+    }
+  }
+  return false; 
 }

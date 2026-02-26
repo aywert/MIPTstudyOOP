@@ -3,6 +3,33 @@
 #include <string.h>
 #include <stdio.h>
 
+Node* parse_program(Parser* parser) {
+  Node* head = NULL;
+  Node* last = NULL; 
+
+  while (parser->pos < parser->count) {
+    // Парсим одну инструкцию (например, a = 1+3)
+    Node* stmt = parse_assign(parser);
+    if (!stmt) break;      // Создаем узел-связку для строк
+    Node* block = malloc(sizeof(Node));
+    block->type = TOKEN_BLOCK;
+    block->left = stmt;   // Текущая строка
+    block->right = NULL;  // Сюда прицепим следующую
+    block->value = NULL;  
+        
+    if (head == NULL) {
+        head = block;
+    } else {
+        last->right = block; // Цепляем к предыдущей связке
+    }
+    last = block;      // Если в твоем языке есть разделители (например, \n), 
+    // здесь можно добавить их пропуск:
+    // while(check(parser, TOKEN_NEWLINE)) advance(parser);
+  }
+
+  return head;
+}
+
 Node* create_number_node(int value) {
     Node* node = malloc(sizeof(Node));
     if (!node) return NULL;
@@ -152,9 +179,7 @@ Node* parse_assign(Parser* parser) {
     return parse_expr(parser);
 }
 
-Node* parse_program(Parser* parser) {
-    return parse_assign(parser);
-}
+
 
 Node* build_ast_recursive(Token* tokens, int token_count) {
     if (!tokens || token_count == 0) return NULL;
@@ -201,6 +226,10 @@ void print_tree(Node* node, int level) {
             break;
         case TOKEN_ASSIGN:
             printf("=\n");
+            print_tree(node->left, level + 1);
+            print_tree(node->right, level + 1);
+            break;
+        case TOKEN_BLOCK:
             print_tree(node->left, level + 1);
             print_tree(node->right, level + 1);
             break;
