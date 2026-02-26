@@ -5,7 +5,6 @@
 #include <string.h>
 #include <ctype.h>
 
-
 typedef enum {
   TOKEN_IDENTIFIER,
   TOKEN_NUMBER,

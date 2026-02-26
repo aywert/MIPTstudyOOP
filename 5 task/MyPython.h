@@ -34,6 +34,7 @@ struct MyPyListObj {
 
 struct MyPyType* create_MyPyType(const char* name, size_t size, alloc_func_t alloc, dealloc_func_t dealloc);
 struct MyPyObj* MyPy_NewObject(struct MyPyType* type);
+void destroy_MyPyType(struct MyPyType* type);
 
 struct MyPyObj* alloc(int size); 
 void dealloc(struct MyPyObj* obj); 
