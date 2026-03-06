@@ -1,19 +1,19 @@
 #pragma once
 #include "View.hpp"
 
-class GraphicVisual {
+class GraphicVisual: public View {
   public: 
-    void render(Model& model) {};
-    void drawRabbit(Rabbit& rabbit) {};
-    void drawSnake(Snake& snake) {};
-    void drawSpace(Snake& snake) {};
+    void clearScreen() override {}
+    void setColor() override{};
+    void render(Model& model) override {};
+    void drawRabbit(Rabbit& rabbit) override{};
+    void drawSnake(Snake& snake) override{};
+    void drawSpace(Snake& snake) override{};
 
-    std::list<Event> getEvents() {
+    std::list<Event> getEvents() override {
       Event event();
       std::list<Event> lst;
       lst.emplace_back(event);
       return lst;
     }
-
-    std::list<Event> runLoop() {}
 };

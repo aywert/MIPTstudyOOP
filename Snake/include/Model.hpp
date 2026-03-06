@@ -3,13 +3,29 @@
 #include <list>
 #include "Snake.hpp"
 #include "Rabbit.hpp"
-#include "View.hpp"
 
 enum class MODEL_STATE {
   NOT_LAUNCHED,
   IN_PROCCESS,
   GAME_OVER,
   ERROR,
+};
+
+enum class EventType {
+  PR_UP, 
+  PR_DOWN,
+  PR_LEFT,
+  PR_RIGHT,
+
+  PAUSE,
+  HALT,
+};
+
+class Event {
+  EventType type_;
+
+  public:
+    Event(){}
 };
 
 class Model {
@@ -22,10 +38,17 @@ class Model {
   std::list<Snake>  snakes_;
 
   public: 
-    Model(size_t tick): tick_(tick){}
+    Model(size_t window_width, size_t window_height, size_t tick): 
+      window_width_(window_width), 
+      window_height_(window_height), 
+      tick_(tick){}
+
     MODEL_STATE getStatus() { return status_; };
 
-    bool over() {if (status_ == MODEL_STATE::GAME_OVER) return true;}
-    size_t get_ticks() {return tick_;}
+    bool over() { return status_ == MODEL_STATE::GAME_OVER;}
     void update(std::list<Event>) {};
+
+    size_t getTicks()  {return tick_;}
+    size_t getWidth()  {return window_width_;}
+    size_t getHeight() {return window_height_;}
 };

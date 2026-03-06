@@ -9,7 +9,7 @@ enum class SNAKE_DIRECTION{
   DIR_LEFT,
 };
 
-class Segment {
+struct Segment {
   int position_x;
   int position_y; 
   // also shoud contain colour
@@ -21,4 +21,5 @@ class Snake {
 
   public: 
     Snake(){}
+    std::list<Segment> getBody() {return body_;}
 };

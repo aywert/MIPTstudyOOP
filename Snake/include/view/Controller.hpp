@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Model.hpp"
-#include "View.hpp"
+#include "./view/View.hpp"
 #include "unistd.h"
 
 class Controller {
@@ -12,10 +12,10 @@ class Controller {
     
     void run() {
       while (!model_.over()) {
-        view_.process_input();
+        view_.getEvents();
         model_.update(view_.getEvents());
         view_.render(model_);
-        sleep(model_.get_ticks());
+        sleep(model_.getTicks());
       }
     }
 };

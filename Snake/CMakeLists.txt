@@ -12,4 +12,5 @@ add_executable(${PROJECT_NAME} ${SRC_CPP})
 # 5. Настраиваем пути и линковку
 target_include_directories(${PROJECT_NAME} PRIVATE
   include
+  include/view
 )
