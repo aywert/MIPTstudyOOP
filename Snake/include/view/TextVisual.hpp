@@ -123,7 +123,7 @@ class TextVisual: public View {
     };
     void drawSpace(Snake& snake) override{};
 
-    std::vector<Event> getEvents() override {
+    std::vector<Event> getEvents(long time_mcsec) override {
       std::vector<Event> events;
     
       fd_set read_fds;
@@ -133,7 +133,7 @@ class TextVisual: public View {
       
       struct timeval timeout;
       timeout.tv_sec = 0;
-      timeout.tv_usec = 100000; // 0.1 сек
+      timeout.tv_usec = time_mcsec; // 0.1 сек
 
       int retval = select(STDIN_FILENO + 1, &read_fds, NULL, NULL, &timeout);
 

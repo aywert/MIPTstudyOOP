@@ -6,7 +6,7 @@ class View {
   std::vector<Event> events;
 
   public:
-    virtual std::vector<Event> getEvents() = 0;
+    virtual std::vector<Event> getEvents(long time_mcsec) = 0;
 
     virtual void clearScreen() = 0;
     virtual void render(Model& model) = 0;

@@ -12,7 +12,7 @@ class Controller {
     void run() {
       model_.addSnake(Snake(model_.getWidth(), model_.getHeight()));
       while (!model_.over()) {
-        model_.update(view_.getEvents());
+        model_.update(view_.getEvents(model_.getTicks()));
         view_.render(model_);
         usleep(model_.getTicks());
       }
