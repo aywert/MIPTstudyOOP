@@ -3,15 +3,15 @@
 #include "../Model.hpp"
 
 class View {
-  std::list<Event> events;
+  std::vector<Event> events;
 
   public:
-    virtual std::list<Event> getEvents() = 0;
+    virtual std::vector<Event> getEvents() = 0;
 
     virtual void clearScreen() = 0;
     virtual void render(Model& model) = 0;
-    virtual void drawRabbit(Rabbit& rabbit) = 0;
-    virtual void drawSnake(Snake& snake) = 0;
+    virtual void drawRabbit(const Rabbit& rabbit) = 0;
+    virtual void drawSnake(const Snake& snake) = 0;
     virtual void drawSpace(Snake& snake) = 0;
 
     virtual void gotoxy(const int x, const int y) = 0;

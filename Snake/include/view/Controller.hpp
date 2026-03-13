@@ -1,8 +1,7 @@
 #pragma once
 
 #include "Model.hpp"
-#include "./view/View.hpp"
-#include "unistd.h"
+#include <unistd.h>
 
 class Controller {
   Model& model_;
@@ -11,11 +10,12 @@ class Controller {
     Controller(Model& model, View& view) : model_(model), view_(view) {}
     
     void run() {
+      model_.addSnake(Snake(model_.getWidth(), model_.getHeight()));
       while (!model_.over()) {
-        view_.getEvents();
         model_.update(view_.getEvents());
         view_.render(model_);
-        sleep(model_.getTicks());
+        usleep(model_.getTicks());
       }
     }
 };
+

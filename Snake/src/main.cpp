@@ -4,7 +4,9 @@
 #include "Controller.hpp"
 
 int main() {
-  Model model(30, 10, 10);
+  std::signal(SIGWINCH, handle_winch);
+
+  Model model(100, 100, 100);
   TextVisual tv;
   Controller ctrl(model, tv);
   ctrl.run();

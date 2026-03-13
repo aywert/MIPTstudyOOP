@@ -1,14 +1,26 @@
 #pragma once
 #include "View.hpp"
+#include <csignal>
+#include <atomic>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#include <termios.h>
+
+std::atomic<bool> screen_needs_update{true};
+
+void handle_winch(int sig) {
+  screen_needs_update.store(true);
+}
 
 class TextVisual: public View {
   std::string buffer;
+  struct termios old_attr_;
 
   public:
 
-    
   void drawBox(Model& model) {
-    int width = model.getWidth();   
+
+    int width  = model.getWidth(); 
     int height = model.getHeight(); 
     
     int offsetX = 2;
@@ -16,42 +28,38 @@ class TextVisual: public View {
     
     gotoxy(offsetX, offsetY);
     
-
     buffer += "┌";
     int index = 0;
     for (index; index < width; index++) {buffer += "─";}
-    buffer += "┐\n";
+      buffer += "┐";
 
     setColor(45);
-    gotoxy(width/2, 0);
+    gotoxy(width/2, 1);
     buffer.append("Slizarin");
     setColor(0);
     
     
-    for (int row = 0; row < height; row++) {
-      gotoxy(offsetX, offsetY + row + 1);
+    for (int row = 1; row <= height; row++) {
+      gotoxy(offsetX, offsetY + row);
       buffer += "│";
       
-      gotoxy(offsetX + 1, offsetY + row + 1);
-      for (int i = 0; i < width; i++) {
-        buffer += " ";
-      }
-      
-      gotoxy(offsetX + width + 1, offsetY + row + 1);
-      buffer += "│\n";
+      gotoxy(offsetX + width + 1, offsetY + row);
+      buffer += "│";
     }
     
-      gotoxy(offsetX, offsetY + height + 1);
-      buffer += "└";
-      for (int i = 0; i < width; i++) {
-          buffer += "─";
-      }
-      buffer += "┘\n";
-    
+    gotoxy(offsetX, offsetY + height + 1);
+    buffer += "└";
+    for (int i = 0; i < width; i++) {
+      buffer += "─";
     }
+    
+    buffer += "┘";
+  }
 
     virtual void gotoxy(const int x, const int y) override {
-      buffer+="\033[" + std::to_string(y) + ";" + std::to_string(x) + "H";
+      int safeX = (x < 1) ? 1 : x;
+      int safeY = (y < 1) ? 1 : y;
+      buffer += "\033[" + std::to_string(safeY) + ";" + std::to_string(safeX) + "H";
     }
 
     virtual void hideCursor() override {
@@ -62,9 +70,10 @@ class TextVisual: public View {
     }
 
     void clearScreen() override {
-      buffer+="\033[2J";
-      buffer+="\033[H";
+      buffer += "\033[2J\033[3J\033[H";
     }
+
+    void clearSymbol() {buffer+="\033[P";}
 
     void setColor(int color) override{
       buffer.append("\033[");
@@ -73,24 +82,103 @@ class TextVisual: public View {
     }
 
     void render(Model& model) override {
-      buffer.clear();  // ОЧИЩАЕМ буфер перед новой отрисовкой!
+      hideCursor();
+      if (screen_needs_update.load()) { //checkig whether there were changes in sizes of the window
+        struct winsize w;
+        ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
         
-      clearScreen(); 
-      drawBox(model);
+        model.setWidth(w.ws_col - 5);
+        model.setHeight(w.ws_row - 5);
+
+        buffer.clear();
+        clearScreen(); 
+        drawBox(model);
+        
+        screen_needs_update.store(false);
+      }
+
+      else {
+        buffer.clear();
+      }
+
+      for (const auto& snake: model.getSnakes()) {
+        drawSnake(snake);
+      }
+
       std::cout << buffer << std::flush;
     }
 
-    void drawRabbit(Rabbit& rabbit) override{};
-    void drawSnake(Snake& snake) override{
-      std::list<Segment> body = snake.getBody();
+    void drawRabbit(const Rabbit& rabbit) override{};
+    void drawSnake(const Snake& snake) override{
+      const std::list<Segment>& body = snake.getBody();
       for (const auto& seg: body) {
         gotoxy(seg.position_x, seg.position_y);
         buffer.append("*");
       }
+      //deleting tail
+      Segment tail = snake.getTail();
+      gotoxy(tail.position_x, tail.position_y);
+      buffer.append(" ");
+      hideCursor();
     };
     void drawSpace(Snake& snake) override{};
 
-    std::list<Event> getEvents() override {
-      return std::list<Event>{};
+    std::vector<Event> getEvents() override {
+      std::vector<Event> events;
+    
+      fd_set read_fds;
+     
+      FD_ZERO(&read_fds);
+      FD_SET(STDIN_FILENO, &read_fds);
+      
+      struct timeval timeout;
+      timeout.tv_sec = 0;
+      timeout.tv_usec = 100000; // 0.1 сек
+
+      int retval = select(STDIN_FILENO + 1, &read_fds, NULL, NULL, &timeout);
+
+      if (retval == -1) {
+        return events;
+      } 
+      else if (retval > 0) {
+        char ch;
+        if (read(STDIN_FILENO, &ch, 1) > 0) {
+          switch(ch) {
+            case 'w': events.push_back(EventType::UP);    break;
+            case 'a': events.push_back(EventType::LEFT);  break;
+            case 's': events.push_back(EventType::DOWN);  break;
+            case 'd': events.push_back(EventType::RIGHT); break;
+            case 'p': events.push_back(EventType::PAUSE); break;
+          }
+        }
+      }
+      return events;
     }
+
+    TextVisual() {
+      if (tcgetattr(STDIN_FILENO, &old_attr_) == -1) {
+        perror("tcgetattr");
+        return;
+      }
+
+      struct termios new_attr = old_attr_;
+
+      new_attr.c_lflag &= ~ECHO;  // turning off ECHO
+      new_attr.c_lflag &= ~ICANON; // turning off canoniccal mode
+
+      new_attr.c_cc[VMIN] = 0;  // Не ждать ни одного символа
+      new_attr.c_cc[VTIME] = 0; // Не ждать по времени
+    
+      if (tcsetattr(STDIN_FILENO, TCSANOW, &new_attr) == -1) {
+        perror("tcsetattr");
+        return;
+      }
+    }
+
+    ~TextVisual() {
+      std::cout << "\033[0m\033[?25h" << std::flush;
+      if (tcsetattr(STDIN_FILENO, TCSANOW, &old_attr_) == -1) {
+        perror("Critical: Failed to restore terminal attributes");
+      }
+    } 
 };
