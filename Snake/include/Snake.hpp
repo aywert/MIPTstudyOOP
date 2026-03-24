@@ -17,6 +17,16 @@ struct Segment {
     position_x(x), 
     position_y(y), 
     sbl(symbol) {}
+  Segment(): 
+    position_x(0), 
+    position_y(0), 
+    sbl('\0') {}
+  Segment(const Segment& other): 
+    position_x(other.position_x), 
+    position_y(other.position_y), 
+    sbl(other.sbl) {}
+    
+  void setHead(char head) {sbl = head;}
 };
 
 class Snake {
@@ -27,8 +37,9 @@ class Snake {
   public: 
     Snake(int width, int height): rudimentary_tail_(0, 0, '\0') {
       direction_ = Direction::UP;
-      for (int i = 0; i < 5; i++) {
-        body_.push_back({width/2+i, height/2, '*'});
+      body_.push_back({width/2, height/2, '^'});
+      for (int i = 1; i < 5; i++) {
+        body_.push_back({width/2+i, height/2, 'o'});
       }
     }
 
@@ -37,19 +48,23 @@ class Snake {
     void setDirection(Direction dir) {direction_ = dir;}
 
     void move() {
-     if (body_.empty()) return;
-      Segment newHead = body_.front();
-      switch (direction_) {
-        case Direction::UP:    newHead.position_y--; break;
-        case Direction::DOWN:  newHead.position_y++; break;
-        case Direction::LEFT:  newHead.position_x--; break;
-        case Direction::RIGHT: newHead.position_x++; break;
-      }
+    if (body_.empty()) return;
 
-      rudimentary_tail_ = body_.back();
-      body_.push_front(newHead);
-      body_.pop_back();
+    Segment newHead = body_.front();
+    body_.front().sbl = body_.back().sbl; 
+
+    switch (direction_) {
+        case Direction::UP:    newHead.position_y--; newHead.setHead('^'); break;
+        case Direction::DOWN:  newHead.position_y++; newHead.setHead('v'); break;
+        case Direction::LEFT:  newHead.position_x--; newHead.setHead('<'); break;
+        case Direction::RIGHT: newHead.position_x++; newHead.setHead('>'); break;
     }
+
+    body_.push_front(newHead);
+
+    rudimentary_tail_ = body_.back();
+    body_.pop_back();
+}
 
     Segment getTail() const {return rudimentary_tail_;}
 };

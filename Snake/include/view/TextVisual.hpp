@@ -18,7 +18,7 @@ class TextVisual: public View {
 
   public:
 
-  void drawBox(Model& model) {
+  inline void drawBox(Model& model) {
 
     int width  = model.getWidth(); 
     int height = model.getHeight(); 
@@ -29,8 +29,8 @@ class TextVisual: public View {
     gotoxy(offsetX, offsetY);
     
     buffer += "┌";
-    int index = 0;
-    for (index; index < width; index++) {buffer += "─";}
+    
+    for (int index = 0; index < width; index++) {buffer += "─";}
       buffer += "┐";
 
     setColor(45);
@@ -113,7 +113,7 @@ class TextVisual: public View {
       const std::list<Segment>& body = snake.getBody();
       for (const auto& seg: body) {
         gotoxy(seg.position_x, seg.position_y);
-        buffer.append("*");
+        buffer += seg.sbl;
       }
       //deleting tail
       Segment tail = snake.getTail();
@@ -121,38 +121,46 @@ class TextVisual: public View {
       buffer.append(" ");
       hideCursor();
     };
+
     void drawSpace(Snake& snake) override{};
 
-    std::vector<Event> getEvents(long time_mcsec) override {
-      std::vector<Event> events;
-    
+  Event getEvent(long time_mlsec) override {
       fd_set read_fds;
+      Event event; 
      
       FD_ZERO(&read_fds);
       FD_SET(STDIN_FILENO, &read_fds);
       
       struct timeval timeout;
       timeout.tv_sec = 0;
-      timeout.tv_usec = time_mcsec; // 0.1 сек
+      timeout.tv_usec = time_mlsec*1000; //need to be more than tick of model
 
       int retval = select(STDIN_FILENO + 1, &read_fds, NULL, NULL, &timeout);
-
+      
       if (retval == -1) {
-        return events;
+        return Event(EventType::BAD);
       } 
       else if (retval > 0) {
         char ch;
-        if (read(STDIN_FILENO, &ch, 1) > 0) {
+        while (read(STDIN_FILENO, &ch, 1) > 0) {
+          EventType type;
+          bool valid = true;
+
           switch(ch) {
-            case 'w': events.push_back(EventType::UP);    break;
-            case 'a': events.push_back(EventType::LEFT);  break;
-            case 's': events.push_back(EventType::DOWN);  break;
-            case 'd': events.push_back(EventType::RIGHT); break;
-            case 'p': events.push_back(EventType::PAUSE); break;
+            case 'w': type = EventType::UP;    break;
+            case 'a': type = EventType::LEFT;  break;
+            case 's': type = EventType::DOWN;  break;
+            case 'd': type = EventType::RIGHT; break;
+            case 'p': type = EventType::PAUSE; break;
+            default:  valid = false;           break;
+          }
+          if (valid) {
+            event.setEventType(type); 
           }
         }
       }
-      return events;
+
+      return event;
     }
 
     TextVisual() {
