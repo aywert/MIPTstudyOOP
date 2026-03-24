@@ -9,24 +9,16 @@ enum class Direction{
   LEFT,
 };
 
-struct Segment {
-  int position_x, position_y; 
-  char sbl;
+enum class SegmentType {
+  HEAD,
+  BODY
+};
 
-  Segment(int x, int y, char symbol): 
-    position_x(x), 
-    position_y(y), 
-    sbl(symbol) {}
-  Segment(): 
-    position_x(0), 
-    position_y(0), 
-    sbl('\0') {}
-  Segment(const Segment& other): 
-    position_x(other.position_x), 
-    position_y(other.position_y), 
-    sbl(other.sbl) {}
-    
-  void setHead(char head) {sbl = head;}
+struct Segment {
+  int x, y;
+  SegmentType type; // Вместо char sbl
+
+  Segment(int x, int y, SegmentType t) : x(x), y(y), type(t) {}
 };
 
 class Snake {
@@ -35,29 +27,26 @@ class Snake {
   Segment rudimentary_tail_;
 
   public: 
-    Snake(int width, int height): rudimentary_tail_(0, 0, '\0') {
+    Snake(int width, int height) : rudimentary_tail_(0, 0, SegmentType::BODY) {
       direction_ = Direction::UP;
-      body_.push_back({width/2, height/2, '^'});
+    
+      body_.emplace_back(width / 2, height / 2, SegmentType::HEAD);
       for (int i = 1; i < 5; i++) {
-        body_.push_back({width/2+i, height/2, 'o'});
+          body_.emplace_back(width / 2 + i, height / 2, SegmentType::BODY);
       }
     }
-
-    std::list<Segment> getBody() const {return body_;}
-    Direction getDirection() const noexcept {return direction_;}
-    void setDirection(Direction dir) {direction_ = dir;}
 
     void move() {
     if (body_.empty()) return;
 
     Segment newHead = body_.front();
-    body_.front().sbl = body_.back().sbl; 
+    body_.front().type = SegmentType::BODY; 
 
     switch (direction_) {
-        case Direction::UP:    newHead.position_y--; newHead.setHead('^'); break;
-        case Direction::DOWN:  newHead.position_y++; newHead.setHead('v'); break;
-        case Direction::LEFT:  newHead.position_x--; newHead.setHead('<'); break;
-        case Direction::RIGHT: newHead.position_x++; newHead.setHead('>'); break;
+        case Direction::UP:    newHead.y--; break;
+        case Direction::DOWN:  newHead.y++; break;
+        case Direction::LEFT:  newHead.x--; break;
+        case Direction::RIGHT: newHead.x++; break;
     }
 
     body_.push_front(newHead);
@@ -66,5 +55,8 @@ class Snake {
     body_.pop_back();
 }
 
-    Segment getTail() const {return rudimentary_tail_;}
+    Segment            getTail() const {return rudimentary_tail_;}
+    std::list<Segment> getBody() const noexcept {return body_;}
+    Direction getDirection()     const noexcept {return direction_;}
+    void      setDirection(Direction dir) noexcept {direction_ = dir;}
 };

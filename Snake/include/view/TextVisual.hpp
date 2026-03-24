@@ -110,14 +110,25 @@ class TextVisual: public View {
 
     void drawRabbit(const Rabbit& rabbit) override{};
     void drawSnake(const Snake& snake) override{
-      const std::list<Segment>& body = snake.getBody();
-      for (const auto& seg: body) {
-        gotoxy(seg.position_x, seg.position_y);
-        buffer += seg.sbl;
-      }
+      for (const auto& seg : snake.getBody()) {
+        char symbol;
+        if (seg.type == SegmentType::HEAD) {
+          switch(snake.getDirection()) {
+            case Direction::UP:    symbol = '^'; break;
+            case Direction::DOWN:  symbol = 'v'; break;
+            case Direction::LEFT:  symbol = '<'; break;
+            case Direction::RIGHT: symbol = '>'; break;
+          }
+        } else {
+          symbol = 'o';
+        }
+
+      gotoxy(seg.x, seg.y);
+      buffer+=symbol;
+    }
       //deleting tail
       Segment tail = snake.getTail();
-      gotoxy(tail.position_x, tail.position_y);
+      gotoxy(tail.x, tail.y);
       buffer.append(" ");
       hideCursor();
     };
