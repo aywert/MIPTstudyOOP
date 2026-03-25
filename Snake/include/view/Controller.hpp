@@ -21,13 +21,14 @@ class Controller {
         long tick_time = model_.getTicks();
 
         while (elapsed < tick_time) {
-          events.push_back(view_.getEvent(tick_time - elapsed));
+          Event event = view_.getEvent(tick_time - elapsed);
+          if (event.type_!=EventType::BAD)
+            events.push_back(event);
           
           elapsed = 
           std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count();
         }
-
-        //std::cout << events.size();
+        
         model_.update(events);
         view_.render(model_);
       }

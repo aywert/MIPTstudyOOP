@@ -6,8 +6,11 @@
 int main() {
   std::signal(SIGWINCH, handle_winch);
 
-  Model model(100, 100, 100);
-  TextVisual tv;
+  struct winsize w;
+  ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+
+  Model model(w.ws_col, w.ws_row, 100);
+  TextVisual tv(model);
   Controller ctrl(model, tv);
   ctrl.run();
 }

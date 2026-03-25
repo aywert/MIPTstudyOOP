@@ -5,6 +5,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <termios.h>
+#include <fcntl.h>
 
 std::atomic<bool> screen_needs_update{true};
 
@@ -13,6 +14,8 @@ void handle_winch(int sig) {
 }
 
 class TextVisual: public View {
+  int offsetX;
+  int offsetY;  
   std::string buffer;
   struct termios old_attr_;
 
@@ -22,10 +25,7 @@ class TextVisual: public View {
 
     int width  = model.getWidth(); 
     int height = model.getHeight(); 
-    
-    int offsetX = 2;
-    int offsetY = 2;
-    
+
     gotoxy(offsetX, offsetY);
     
     buffer += "┌";
@@ -102,14 +102,44 @@ class TextVisual: public View {
       }
 
       for (const auto& snake: model.getSnakes()) {
-        drawSnake(snake);
+        if (snake.getState() == SnakeStatus::DEAD)
+          clearSnake(snake);
+        else
+          drawSnake(snake);
+      }
+
+      for (const auto& rabbit: model.getRabbits()) {
+        drawRabbit(rabbit);
       }
 
       std::cout << buffer << std::flush;
     }
 
-    void drawRabbit(const Rabbit& rabbit) override{};
+    void clearPosition(int x, int y, char ch = ' ') {
+      gotoxy(x, y);
+      buffer += ch;
+    }
+
+    void clearSnake(const Snake& snake) {
+      for (const auto& seg : snake.getBody()) {
+        clearPosition(seg.x, seg.y);
+      }
+
+      Segment sg = snake.getTail();
+      clearPosition(sg.x, sg.y);
+    }
+
+    void drawRabbit(const Rabbit& rabbit) override {
+      gotoxy(rabbit.getX(), rabbit.getY());
+      buffer+='@';
+    };
     void drawSnake(const Snake& snake) override{
+      //deleting tail
+      Segment tail = snake.getTail();
+      gotoxy(tail.x, tail.y);
+      buffer.append(" ");
+      hideCursor();
+      
       for (const auto& seg : snake.getBody()) {
         char symbol;
         if (seg.type == SegmentType::HEAD) {
@@ -123,14 +153,10 @@ class TextVisual: public View {
           symbol = 'o';
         }
 
-      gotoxy(seg.x, seg.y);
-      buffer+=symbol;
-    }
-      //deleting tail
-      Segment tail = snake.getTail();
-      gotoxy(tail.x, tail.y);
-      buffer.append(" ");
-      hideCursor();
+        gotoxy(seg.x, seg.y);
+        buffer+=symbol;
+      }
+      
     };
 
     void drawSpace(Snake& snake) override{};
@@ -149,7 +175,8 @@ class TextVisual: public View {
       int retval = select(STDIN_FILENO + 1, &read_fds, NULL, NULL, &timeout);
       
       if (retval == -1) {
-        return Event(EventType::BAD);
+        fprintf(stderr, "select error\n");
+        return event;
       } 
       else if (retval > 0) {
         char ch;
@@ -174,7 +201,13 @@ class TextVisual: public View {
       return event;
     }
 
-    TextVisual() {
+    TextVisual(Model& model) {
+      offsetX = model.getRowShift();
+      offsetY = model.getColShift();
+
+      int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+      fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
+
       if (tcgetattr(STDIN_FILENO, &old_attr_) == -1) {
         perror("tcgetattr");
         return;

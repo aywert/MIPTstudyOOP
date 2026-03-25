@@ -3,6 +3,8 @@
 #include <list>
 #include <variant>
 #include <utility>
+#include <random>
+#include <chrono>
 #include "Snake.hpp"
 #include "Rabbit.hpp"
 
@@ -24,6 +26,11 @@ enum class EventType {
   BAD,
 };
 
+constexpr long long SPAWN_INTERVAL = 1000;
+constexpr int       MAX_RABBITS    =   10;
+constexpr int       SHIFT_COL      =    2;
+constexpr int       SHIFT_ROW      =    2;
+
 struct Event {
   EventType type_;
 
@@ -32,29 +39,33 @@ struct Event {
   void setEventType(EventType type) {type_ = type;}
 };
 
-
-struct SnakeContent { char symbol = '*'; };
-struct RabbitContent { char symbol = '@'; };
-struct EmptyContent { char symbol = ' '; };
-
-using CellContent = std::variant<SnakeContent, RabbitContent, EmptyContent>;
-
-struct Cell {
-  int pos_x, pos_y;
-  int color;
-  CellContent what;
-};
-
 class Model {
   MODEL_STATE status_;
 
   int window_width_ = 0, window_height_ = 0;
+  int shift_col = SHIFT_COL; 
+  int shift_row = SHIFT_ROW; 
   size_t tick_;
 
   std::list<Rabbit> rabbits_;
   std::list<Snake>  snakes_;
 
-  std::vector<Cell> changes_;
+  using time_t = std::chrono::steady_clock::time_point;
+  class Clock {
+    time_t last_time;
+    public:
+      Clock() : last_time(std::chrono::steady_clock::now()) {}
+
+    long long getDeltaMS() {
+      time_t now = std::chrono::steady_clock::now();
+      auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_time);
+      return diff.count();
+    }
+
+    void reset() {
+      last_time = std::chrono::steady_clock::now();
+    }
+  };
 
   public: 
     Model(size_t window_width, size_t window_height, size_t tick): 
@@ -64,6 +75,8 @@ class Model {
       tick_(tick){}
 
     MODEL_STATE getStatus() { return status_; };
+
+    Clock RabbitTimer;
 
     bool over() { return status_ == MODEL_STATE::GAME_OVER;}
     void update(const std::vector<Event>& events) {
@@ -81,20 +94,120 @@ class Model {
         }
       }
       
+      auto it = snakes_.begin();
+      while (it != snakes_.end()) {
 
-      for (auto& snake : snakes_) {
-        snake.move();
+        switch(it->getState()) {
+          case SnakeStatus::ROTTED: 
+            it = snakes_.erase(it);
+            break;
+          case SnakeStatus::DEAD:
+            ++it;
+            break;
+          case SnakeStatus::ALIVE: {
+            it->move();
+            if (checkBoundaryCollision(*it) || checkSelfCollision(*it)) {
+              it->kill(); ++it;
+            } else {
+              ++it;  // Переходим к следующему элементу
+            }
+
+            break;
+          }
+        }
+
+        //handleRabbitCollision(*it);
+      }
+
+      long long spawn_time = RabbitTimer.getDeltaMS();
+
+      if (spawn_time >= SPAWN_INTERVAL) {
+        if (rabbits_.size() < MAX_RABBITS) {
+          spawnRabbit();
+        }
+
+        RabbitTimer.reset();
       }
     };
 
     void setWidth(int width)   {window_width_  = width;}
     void setHeight(int height) {window_height_ = height;}
 
-    size_t getTicks()  {return tick_;}
-    int getWidth()  {return window_width_;}
-    int getHeight() {return window_height_;}
+    size_t getTicks() const noexcept {return tick_;}
+    int    getWidth() const noexcept {return window_width_;}
+    int   getHeight() const noexcept {return window_height_;}
+    int getColShift() const noexcept {return shift_col;}
+    int getRowShift() const noexcept {return shift_row;}
 
-    void addSnake(Snake snake) {snakes_.push_back(snake);}
-    std::list<Snake> getSnakes()  {return snakes_; }
+    void addSnake(Snake snake)    {snakes_.push_back(snake);  }
+    void addRabbit(Rabbit rabbit) {rabbits_.push_back(rabbit);}
+    std::list<Snake>  getSnakes()  {return snakes_; }
     std::list<Rabbit> getRabbits(){return rabbits_;}
+
+    void spawnRabbit() {
+      static std::random_device rd;
+    
+      // mt19937 — это Вихрь Мерсенна, очень качественный генератор
+      static std::mt19937 gen(rd());
+
+      // 2. Определяем диапазоны (включая границы: от 0 до Width-1)
+      std::uniform_int_distribution<int> distribX(1, window_width_ - 1);
+      std::uniform_int_distribution<int> distribY(1, window_height_ - 1);
+
+      // 3. Создаем точку
+      Rabbit p(distribX(gen), distribY(gen));
+      rabbits_.push_back(p);
+    }
+
+    bool checkBoundaryCollision(const Snake& snake) {
+      const auto& head = snake.getHead();
+      return (head.x < shift_row || head.x > window_width_  - shift_row || 
+              head.y < shift_col || head.y > window_height_ - shift_col);
+    }
+  
+  bool checkSelfCollision(const Snake& snake) {
+    const auto& body = snake.getBody();
+    
+    const auto& head = body.front();
+    auto it = body.begin();
+    ++it;
+    
+    for (; it != body.end(); ++it) {
+      if (it->x == head.x && it->y == head.y) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
+  void handleRabbitCollision(Snake& snake) {
+    const auto& head = snake.getHead();
+    
+    auto it = rabbits_.begin();
+    while (it != rabbits_.end()) {
+      if (it->getX() == head.x && it->getY() == head.y) {
+        it = rabbits_.erase(it);
+        snake.grow();
+      } else {
+        ++it;
+      }
+    }
+  }
+  
+  bool isPositionFree(int x, int y) const {
+    // Проверка границ
+    if (x < 1 || x > window_width_ || y < 1 || y > window_height_) {
+      return false;
+    }
+    
+    // Проверка змеек
+    for (const auto& snake : snakes_) {
+      for (const auto& segment : snake.getBody()) {
+        if (segment.x == x && segment.y == y) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
 };

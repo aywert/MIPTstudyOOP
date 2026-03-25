@@ -14,6 +14,12 @@ enum class SegmentType {
   BODY
 };
 
+enum class SnakeStatus {
+  ALIVE, 
+  DEAD, 
+  ROTTED, // hiden  
+};
+
 struct Segment {
   int x, y;
   SegmentType type; // Вместо char sbl
@@ -22,17 +28,21 @@ struct Segment {
 };
 
 class Snake {
+  SnakeStatus state_;
   Direction direction_;
   std::list<Segment> body_;
   Segment rudimentary_tail_;
 
+  bool should_grow_;
+
   public: 
     Snake(int width, int height) : rudimentary_tail_(0, 0, SegmentType::BODY) {
       direction_ = Direction::UP;
-    
+      state_     = SnakeStatus::ALIVE;
+
       body_.emplace_back(width / 2, height / 2, SegmentType::HEAD);
       for (int i = 1; i < 5; i++) {
-          body_.emplace_back(width / 2 + i, height / 2, SegmentType::BODY);
+        body_.emplace_back(width / 2 + i, height / 2, SegmentType::BODY);
       }
     }
 
@@ -43,20 +53,30 @@ class Snake {
     body_.front().type = SegmentType::BODY; 
 
     switch (direction_) {
-        case Direction::UP:    newHead.y--; break;
-        case Direction::DOWN:  newHead.y++; break;
-        case Direction::LEFT:  newHead.x--; break;
-        case Direction::RIGHT: newHead.x++; break;
+      case Direction::UP:    newHead.y--; break;
+      case Direction::DOWN:  newHead.y++; break;
+      case Direction::LEFT:  newHead.x--; break;
+      case Direction::RIGHT: newHead.x++; break;
     }
 
     body_.push_front(newHead);
 
     rudimentary_tail_ = body_.back();
     body_.pop_back();
-}
+  }
 
-    Segment            getTail() const {return rudimentary_tail_;}
+    void grow() {
+      should_grow_ = true;
+    }
+
+    void kill() {
+      state_ = SnakeStatus::DEAD;
+    }
+
+    Segment            getTail() const noexcept {return rudimentary_tail_;}
     std::list<Segment> getBody() const noexcept {return body_;}
+    Segment            getHead() const noexcept {return body_.front();}
+    SnakeStatus       getState() const noexcept {return state_;}
     Direction getDirection()     const noexcept {return direction_;}
     void      setDirection(Direction dir) noexcept {direction_ = dir;}
 };
