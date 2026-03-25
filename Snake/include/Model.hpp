@@ -26,8 +26,8 @@ enum class EventType {
   BAD,
 };
 
-constexpr long long SPAWN_INTERVAL = 1000;
-constexpr int       MAX_RABBITS    =   10;
+constexpr long long SPAWN_INTERVAL =   10;
+constexpr int       MAX_RABBITS    = 1000;
 constexpr int       SHIFT_COL      =    2;
 constexpr int       SHIFT_ROW      =    2;
 
@@ -98,25 +98,17 @@ class Model {
       while (it != snakes_.end()) {
 
         switch(it->getState()) {
-          case SnakeStatus::ROTTED: 
-            it = snakes_.erase(it);
-            break;
-          case SnakeStatus::DEAD:
-            ++it;
-            break;
+          case SnakeStatus::ROTTED: it = snakes_.erase(it); break;
+          case SnakeStatus::DEAD: ++it; break;
           case SnakeStatus::ALIVE: {
             it->move();
             if (checkBoundaryCollision(*it) || checkSelfCollision(*it)) {
               it->kill(); ++it;
-            } else {
-              ++it;  // Переходим к следующему элементу
-            }
+            } else { handleRabbitCollision(*it); ++it;}  // Переходим к следующему элементу
 
             break;
           }
         }
-
-        //handleRabbitCollision(*it);
       }
 
       long long spawn_time = RabbitTimer.getDeltaMS();
@@ -145,25 +137,42 @@ class Model {
     std::list<Rabbit> getRabbits(){return rabbits_;}
 
     void spawnRabbit() {
-      static std::random_device rd;
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
     
-      // mt19937 — это Вихрь Мерсенна, очень качественный генератор
-      static std::mt19937 gen(rd());
-
-      // 2. Определяем диапазоны (включая границы: от 0 до Width-1)
-      std::uniform_int_distribution<int> distribX(1, window_width_ - 1);
-      std::uniform_int_distribution<int> distribY(1, window_height_ - 1);
-
-      // 3. Создаем точку
-      Rabbit p(distribX(gen), distribY(gen));
-      rabbits_.push_back(p);
+    int min_x = shift_col + 1;
+    int max_x = window_width_ - shift_col;
+    int min_y = shift_row + 1;
+    int max_y = window_height_ - shift_row;
+    
+    for (int attempt = 0; attempt < 100; ++attempt) {
+        std::uniform_int_distribution<int> distribX(min_x, max_x);
+        std::uniform_int_distribution<int> distribY(min_y, max_y);
+        
+        int x = distribX(gen);
+        int y = distribY(gen);
+        
+        if (isPositionFree(x, y)) {
+          rabbits_.push_back(Rabbit(x, y));
+          return;
+        }
+      }
     }
 
     bool checkBoundaryCollision(const Snake& snake) {
-      const auto& head = snake.getHead();
-      return (head.x < shift_row || head.x > window_width_  - shift_row || 
-              head.y < shift_col || head.y > window_height_ - shift_col);
-    }
+    const auto& head = snake.getHead();
+    
+    // Вычисляем реальные границы игрового поля
+    int min_x = shift_col + 1;
+    int max_x = window_width_ - shift_col;
+    int min_y = shift_row + 1;
+    int max_y = window_height_ - shift_row;
+    
+    bool collision = (head.x < min_x || head.x > max_x || 
+                      head.y < min_y || head.y > max_y);
+    
+    return collision;
+}
   
   bool checkSelfCollision(const Snake& snake) {
     const auto& body = snake.getBody();
@@ -195,8 +204,16 @@ class Model {
   }
   
   bool isPositionFree(int x, int y) const {
-    // Проверка границ
-    if (x < 1 || x > window_width_ || y < 1 || y > window_height_) {
+    
+    int min_x = shift_col + 1;
+    int max_x = window_width_ - shift_col;
+    int min_y = shift_row + 1;
+    int max_y = window_height_ - shift_row;
+    
+    bool collision = (x < min_x || x > max_x || 
+                      y < min_y || y > max_y);
+
+    if (collision) {
       return false;
     }
     
@@ -208,6 +225,13 @@ class Model {
         }
       }
     }
+
+    // Проверка кроликов
+    for (const auto& rabbit : rabbits_) {
+      if (x == rabbit.getX() && y == rabbit.getY()) 
+        return false;
+    }
+
     return true;
   }
 };

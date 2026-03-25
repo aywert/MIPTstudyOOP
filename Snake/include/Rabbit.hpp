@@ -12,6 +12,6 @@ class Rabbit {
       y_ = y;
     };
 
-    int getX() const {return x_;}
-    int getY() const {return y_;}
+    int getX() const noexcept {return x_;}
+    int getY() const noexcept {return y_;}
 };

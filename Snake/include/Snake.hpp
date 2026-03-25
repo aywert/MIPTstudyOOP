@@ -28,9 +28,9 @@ struct Segment {
 };
 
 class Snake {
-  SnakeStatus state_;
-  Direction direction_;
-  std::list<Segment> body_;
+  SnakeStatus        state_;
+  std::list<Segment>  body_;
+  Direction      direction_;
   Segment rudimentary_tail_;
 
   bool should_grow_;
@@ -61,8 +61,14 @@ class Snake {
 
     body_.push_front(newHead);
 
-    rudimentary_tail_ = body_.back();
-    body_.pop_back();
+    if (should_grow_) {
+      should_grow_ = false;
+      rudimentary_tail_ = Segment(0, 0, SegmentType::BODY);
+    } else {
+      rudimentary_tail_ = body_.back();
+      body_.pop_back();
+    }
+
   }
 
     void grow() {
@@ -71,6 +77,10 @@ class Snake {
 
     void kill() {
       state_ = SnakeStatus::DEAD;
+    }
+
+    void rot() {
+      state_ = SnakeStatus::ROTTED;
     }
 
     Segment            getTail() const noexcept {return rudimentary_tail_;}

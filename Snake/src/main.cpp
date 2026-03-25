@@ -9,7 +9,7 @@ int main() {
   struct winsize w;
   ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 
-  Model model(w.ws_col, w.ws_row, 100);
+  Model model(w.ws_col, w.ws_row, 120);
   TextVisual tv(model);
   Controller ctrl(model, tv);
   ctrl.run();

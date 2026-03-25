@@ -22,39 +22,46 @@ class TextVisual: public View {
   public:
 
   inline void drawBox(Model& model) {
-
-    int width  = model.getWidth(); 
-    int height = model.getHeight(); 
-
+    int screen_width = model.getWidth();   // ширина терминала
+    int screen_height = model.getHeight(); // высота терминала
+    
+    // Вычисляем размер внутреннего поля
+    int field_width = screen_width - offsetX * 2;   // минус отступы и рамку
+    int field_height = screen_height - offsetY * 2; // минус отступы и рамку
+    
+    // Верхняя граница
     gotoxy(offsetX, offsetY);
-    
     buffer += "┌";
+    for (int i = 0; i < field_width; i++) {
+        buffer += "─";
+    }
+    buffer += "┐";
     
-    for (int index = 0; index < width; index++) {buffer += "─";}
-      buffer += "┐";
-
+    // Заголовок
     setColor(45);
-    gotoxy(width/2, 1);
+    gotoxy(offsetX + field_width / 2, 1);
     buffer.append("Slizarin");
     setColor(0);
     
-    
-    for (int row = 1; row <= height; row++) {
-      gotoxy(offsetX, offsetY + row);
-      buffer += "│";
-      
-      gotoxy(offsetX + width + 1, offsetY + row);
-      buffer += "│";
+    // Боковые границы
+    for (int row = 0; row < field_height; row++) {  // row от 0 до field_height-1
+        // Левая граница
+        gotoxy(offsetX, offsetY + 1 + row);
+        buffer += "│";
+        
+        // Правая граница (на той же строке)
+        gotoxy(offsetX + field_width + 1, offsetY + 1 + row);
+        buffer += "│";
     }
     
-    gotoxy(offsetX, offsetY + height + 1);
+    // Нижняя граница
+    gotoxy(offsetX, offsetY + field_height + 1);
     buffer += "└";
-    for (int i = 0; i < width; i++) {
-      buffer += "─";
+    for (int i = 0; i < field_width; i++) {
+        buffer += "─";
     }
-    
     buffer += "┘";
-  }
+}
 
     virtual void gotoxy(const int x, const int y) override {
       int safeX = (x < 1) ? 1 : x;
@@ -87,8 +94,8 @@ class TextVisual: public View {
         struct winsize w;
         ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
         
-        model.setWidth(w.ws_col - 5);
-        model.setHeight(w.ws_row - 5);
+        model.setWidth(w.ws_col);
+        model.setHeight(w.ws_row);
 
         buffer.clear();
         clearScreen(); 
@@ -101,14 +108,18 @@ class TextVisual: public View {
         buffer.clear();
       }
 
-      for (const auto& snake: model.getSnakes()) {
-        if (snake.getState() == SnakeStatus::DEAD)
+      for (auto& snake: model.getSnakes()) {
+        if (snake.getState() == SnakeStatus::DEAD) {
           clearSnake(snake);
+          snake.rot();
+          drawBox(model);
+        }
+          
         else
           drawSnake(snake);
       }
 
-      for (const auto& rabbit: model.getRabbits()) {
+      for (auto& rabbit: model.getRabbits()) {
         drawRabbit(rabbit);
       }
 
@@ -183,7 +194,6 @@ class TextVisual: public View {
         while (read(STDIN_FILENO, &ch, 1) > 0) {
           EventType type;
           bool valid = true;
-
           switch(ch) {
             case 'w': type = EventType::UP;    break;
             case 'a': type = EventType::LEFT;  break;
@@ -204,9 +214,6 @@ class TextVisual: public View {
     TextVisual(Model& model) {
       offsetX = model.getRowShift();
       offsetY = model.getColShift();
-
-      int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
-      fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
 
       if (tcgetattr(STDIN_FILENO, &old_attr_) == -1) {
         perror("tcgetattr");
