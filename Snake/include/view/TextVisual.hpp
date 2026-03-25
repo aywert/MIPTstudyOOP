@@ -22,7 +22,7 @@ class TextVisual: public View {
   public:
 
   inline void drawBox(Model& model) {
-    int screen_width = model.getWidth();   // ширина терминала
+    int screen_width  = model.getWidth();   // ширина терминала
     int screen_height = model.getHeight(); // высота терминала
     
     // Вычисляем размер внутреннего поля
@@ -82,11 +82,11 @@ class TextVisual: public View {
 
     void clearSymbol() {buffer+="\033[P";}
 
-    void setColor(int color) override{
-      buffer.append("\033[");
-      buffer.append(std::to_string(color));
-      buffer.append("m");
-    }
+      void setColor(int color) override{
+        buffer.append("\033[");
+        buffer.append(std::to_string(color));
+        buffer.append("m");
+      }
 
     void render(Model& model) override {
       hideCursor();
@@ -151,21 +151,30 @@ class TextVisual: public View {
       buffer.append(" ");
       hideCursor();
       
-      for (const auto& seg : snake.getBody()) {
-        char symbol;
-        if (seg.type == SegmentType::HEAD) {
+      auto body = snake.getBody();
+      auto it = body.begin();
+      if (it != body.end()) {
+          // Отрисовываем голову
+          char symbol;
           switch(snake.getDirection()) {
-            case Direction::UP:    symbol = '^'; break;
-            case Direction::DOWN:  symbol = 'v'; break;
-            case Direction::LEFT:  symbol = '<'; break;
-            case Direction::RIGHT: symbol = '>'; break;
+              case Direction::UP:    symbol = '^'; break;
+              case Direction::DOWN:  symbol = 'v'; break;
+              case Direction::LEFT:  symbol = '<'; break;
+              case Direction::RIGHT: symbol = '>'; break;
           }
-        } else {
-          symbol = 'o';
-        }
-
-        gotoxy(seg.x, seg.y);
-        buffer+=symbol;
+          setColor(32);
+          gotoxy(it->x, it->y);
+          buffer += symbol;
+          setColor(0);
+          
+          ++it;
+          // Отрисовываем тело
+          for (; it != body.end(); ++it) {
+              setColor(32);
+              gotoxy(it->x, it->y);
+              buffer += 'o';
+              setColor(0);
+          }
       }
       
     };

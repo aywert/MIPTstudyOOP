@@ -26,8 +26,8 @@ enum class EventType {
   BAD,
 };
 
-constexpr long long SPAWN_INTERVAL =   10;
-constexpr int       MAX_RABBITS    = 1000;
+constexpr long long SPAWN_INTERVAL =  100;
+constexpr int       MAX_RABBITS    =   50;
 constexpr int       SHIFT_COL      =    2;
 constexpr int       SHIFT_ROW      =    2;
 

@@ -11,8 +11,12 @@ class Controller {
     Controller(Model& model, View& view) : model_(model), view_(view) {}
     
     void run() {
-      model_.addSnake(Snake(model_.getWidth(), model_.getHeight()));
-     
+      Snake snake_1 = Snake::Builder()
+        .setBody(Segment(10, 10, SegmentType::BODY))
+        .build();
+      
+      model_.addSnake(snake_1);
+
       while (!model_.over()) 
       {
         std::vector<Event> events;
