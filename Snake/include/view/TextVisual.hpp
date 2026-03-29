@@ -154,29 +154,28 @@ class TextVisual: public View {
       auto body = snake.getBody();
       auto it = body.begin();
       if (it != body.end()) {
-          // Отрисовываем голову
-          char symbol;
-          switch(snake.getDirection()) {
-              case Direction::UP:    symbol = '^'; break;
-              case Direction::DOWN:  symbol = 'v'; break;
-              case Direction::LEFT:  symbol = '<'; break;
-              case Direction::RIGHT: symbol = '>'; break;
-          }
-          setColor(32);
+        // Отрисовываем голову
+        char symbol;
+        switch(snake.getDirection()) {
+          case Direction::UP:    symbol = '^'; break;
+          case Direction::DOWN:  symbol = 'v'; break;
+          case Direction::LEFT:  symbol = '<'; break;
+          case Direction::RIGHT: symbol = '>'; break;
+        }
+        setColor(snake.getColor());
+        gotoxy(it->x, it->y);
+        buffer += symbol;
+        setColor(0);
+        
+        ++it;
+        // Отрисовываем тело
+        for (; it != body.end(); ++it) {
+          setColor(snake.getColor());
           gotoxy(it->x, it->y);
-          buffer += symbol;
+          buffer += 'o';
           setColor(0);
-          
-          ++it;
-          // Отрисовываем тело
-          for (; it != body.end(); ++it) {
-              setColor(32);
-              gotoxy(it->x, it->y);
-              buffer += 'o';
-              setColor(0);
-          }
+        }
       }
-      
     };
 
     void drawSpace(Snake& snake) override{};

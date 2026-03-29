@@ -37,16 +37,20 @@ struct Segment {
 class Snake {
   int id_;
   Controlled_By      cntrl_;
-  SnakeStatus        state_;
+  SnakeStatus        state_ = SnakeStatus::ALIVE;
   std::list<Segment>  body_;
   Direction      direction_;
-  Segment rudimentary_tail_;
+  int                color_;
+  Segment rudimentary_tail_ = {0, 0, SegmentType::BODY};
 
-  bool should_grow_;
+  bool should_grow_ = false;
 
   public: 
-    Snake(const Controlled_By& cntrl, const SnakeStatus& state, const std::list<Segment>& body, const Direction& direction, const Segment& rudimentary_tail): 
-      cntrl_(cntrl), state_(state), body_(body), direction_(direction), rudimentary_tail_(rudimentary_tail) {}
+    Snake(const Controlled_By&          cntrl, 
+          const std::list<Segment>&      body, 
+          const Direction&          direction,
+          const int                     color): 
+      cntrl_(cntrl), body_(body), direction_(direction), color_(color) {}
 
     struct Builder {
       Controlled_By      cntrl_{Controlled_By::bot};
@@ -54,18 +58,18 @@ class Snake {
       std::list<Segment>  body_{};
       Direction      direction_{Direction::RIGHT};
       Segment rudimentary_tail_{};
+      int color_{37}; // default white
 
       Builder& setState(const SnakeStatus& state) {
-        state_ = state; return *this;
+        state_ = state; 
+        return *this;
       }
 
       Builder& setBody(const Segment& seg) {
-        Segment start = seg;
         Segment offset = {-1, 0};
-        body_.emplace_back(seg);
+        body_.emplace_back(seg.x, seg.y, SegmentType::HEAD); 
         body_.emplace_back(seg + offset);        
         body_.emplace_back(seg + offset + offset);
-
         return *this;
       }
 
@@ -83,8 +87,13 @@ class Snake {
         return *this;
       }
 
+      Builder& setColor(const int& color) {
+        color_ = color;
+        return *this;
+      }
+
       Snake build() const {
-        return Snake(cntrl_, state_, body_, direction_, rudimentary_tail_);
+        return Snake(cntrl_, body_, direction_, color_);
       }
     };
 
@@ -92,6 +101,7 @@ class Snake {
     if (body_.empty()) return;
     
     Segment newHead = body_.front();
+    newHead.type       = SegmentType::HEAD; 
     body_.front().type = SegmentType::BODY; 
 
     switch (direction_) {
@@ -128,8 +138,9 @@ class Snake {
     Segment            getTail() const noexcept {return rudimentary_tail_;}
     std::list<Segment> getBody() const noexcept {return body_;}
     Segment            getHead() const noexcept {return body_.front();}
-    SnakeStatus        getState() const noexcept {return state_;}
-    int                getID()    const noexcept {return id_;}
+    SnakeStatus       getState() const noexcept {return state_;}
+    int                  getID() const noexcept {return id_;}
+    int               getColor() const noexcept {return color_;}
     bool   isControlledByHyman() const noexcept {return cntrl_ == Controlled_By::human;}
     bool     isControlledByBot() const noexcept {return cntrl_ == Controlled_By::bot;}
     Direction     getDirection() const noexcept {return direction_;}

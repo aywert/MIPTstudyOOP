@@ -13,16 +13,25 @@ class Controller {
     void run() {
       Snake snake_1 = Snake::Builder()
         .setHumanControlled(Controlled_By::human)
+        .setColor(32)
         .setBody(Segment(10, 10, SegmentType::BODY))
         .build();
 
       Snake snake_2 = Snake::Builder()
         .setHumanControlled(Controlled_By::human)
+        .setColor(34)
         .setBody(Segment(10, 15, SegmentType::BODY))
+        .build();
+
+      Snake bot_1 = Snake::Builder()
+        .setHumanControlled(Controlled_By::bot)
+        .setColor(33)
+        .setBody(Segment(10, 20, SegmentType::BODY))
         .build();
       
       model_.addSnake(snake_1);
       model_.addSnake(snake_2);
+      model_.addSnake(bot_1);
 
       while (!model_.over()) 
       { 

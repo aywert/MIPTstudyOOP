@@ -112,7 +112,7 @@ class Model {
           case SnakeStatus::DEAD: ++it; break;
           case SnakeStatus::ALIVE: {
             it->move();
-            if (checkBoundaryCollision(*it) || checkSelfCollision(*it)) {
+            if (checkBoundaryCollision(*it) || checkSnakeCollisions(*it)) {
               it->kill(); ++it;
             } else { handleRabbitCollision(*it); ++it;}  // Переходим к следующему элементу
 
@@ -161,12 +161,12 @@ class Model {
     }
 
     void addSnake(Snake snake) {
-        snake.setID(next_snake_id_++);
-        snakes_.push_back(snake);
+      snake.setID(next_snake_id_++);
+      snakes_.push_back(snake);
 
-        if (snake.isControlledByHyman()) {
-          human_snakes_ids_.push_back(snake.getID());
-        }
+      if (snake.isControlledByHyman()) {
+        human_snakes_ids_.push_back(snake.getID());
+      }
     }
 
     void addRabbit(Rabbit rabbit) {
@@ -177,15 +177,18 @@ class Model {
     std::list<Rabbit> getRabbits(){return rabbits_;}
 
     void spawnRabbit() {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
-    
-    int min_x = shift_col + 1;
-    int max_x = window_width_ - shift_col;
-    int min_y = shift_row + 1;
-    int max_y = window_height_ - shift_row;
-    
-    for (int attempt = 0; attempt < 100; ++attempt) {
+      static std::mt19937 gen(
+        static_cast<unsigned int>(
+          std::chrono::steady_clock::now().time_since_epoch().count()
+        )
+      );
+      
+      int min_x = shift_col + 1;
+      int max_x = window_width_ - shift_col;
+      int min_y = shift_row + 1;
+      int max_y = window_height_ - shift_row;
+      
+      for (int attempt = 0; attempt < 100; ++attempt) {
         std::uniform_int_distribution<int> distribX(min_x, max_x);
         std::uniform_int_distribution<int> distribY(min_y, max_y);
         
@@ -214,37 +217,30 @@ class Model {
     return collision;
 }
   
-  bool checkSelfCollision(const Snake& snake) {
-    const auto& body = snake.getBody();
-    
-    const auto& head = body.front();
-    auto it = body.begin();
-    ++it;
-    
-    for (; it != body.end(); ++it) {
-      if (it->x == head.x && it->y == head.y) {
-        return true;
+  bool checkSnakeCollisions(const Snake& headSnake) {
+    const auto& head = headSnake.getHead();
+
+    for (const auto& otherSnake : snakes_) {
+      const auto& body = otherSnake.getBody(); // Предполагаем, что это const std::list<Point>&
+      
+      // Если проверяем саму себя — начинаем со второго элемента (пропускаем голову).
+      // Если чужую змейку — проверяем весь список.
+      auto it = (&headSnake == &otherSnake) ? std::next(body.begin()) : body.begin();
+
+      // Идем до конца списка
+      for (; it != body.end(); ++it) {
+        if (head.x == it->x && head.y == it->y) {
+            return true; 
+        }
       }
     }
+    
     return false;
-  }
-
-  bool checkSnakeCollision(const Snake& snake1, const Snake& snake2) {
-
-  if (&snake1 == &snake2) return false; // Это одна и та же змейка
-  
-  const auto& head1 = snake1.getHead();
-  
-  // Проверяем, не врезалась ли голова змейки 1 в тело змейки 2
-  for (const auto& segment : snake2.getBody()) {
-    if (head1.x == segment.x && head1.y == segment.y) {
-      return true;
-    }
-  }
-  
-  return false;
 }
-  
+
+
+
+
   void handleRabbitCollision(Snake& snake) {
     const auto& head = snake.getHead();
     
@@ -292,20 +288,24 @@ class Model {
   }
 
   void updateSnakeDirection(size_t playerIdx, Direction newDir) {
-  if (playerIdx < human_snakes_ids_.size()) {
-    auto snake = findSnakeById(playerIdx);
-    
-    Direction currentDir = snake->getDirection();
-    
-    bool isOpposite = 
-        (newDir == Direction::UP    && currentDir == Direction::DOWN)  ||
-        (newDir == Direction::DOWN  && currentDir == Direction::UP)    ||
-        (newDir == Direction::LEFT  && currentDir == Direction::RIGHT) ||
-        (newDir == Direction::RIGHT && currentDir == Direction::LEFT);
+    if (playerIdx < human_snakes_ids_.size()) {
+      int snakeId = human_snakes_ids_[playerIdx];  // Берём реальный ID из вектора
+      auto snake = findSnakeById(snakeId);
+      
+      if (snake != snakes_.end()) {  // Всегда проверяй, найдена ли змея!
+        Direction currentDir = snake->getDirection();
+        bool isOpposite = 
+          (newDir == Direction::UP    && currentDir == Direction::DOWN)  ||
+          (newDir == Direction::DOWN  && currentDir == Direction::UP)    ||
+          (newDir == Direction::LEFT  && currentDir == Direction::RIGHT) ||
+          (newDir == Direction::RIGHT && currentDir == Direction::LEFT);
 
-    if (!isOpposite) {
-      snake->setDirection(newDir);
+        if (!isOpposite) {
+          snake->setDirection(newDir);
+        }
+      }
     }
-  }
 }
 };
+
+
