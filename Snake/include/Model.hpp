@@ -16,10 +16,15 @@ enum class MODEL_STATE {
 };
 
 enum class EventType {
-  UP, 
-  DOWN,
-  LEFT,
-  RIGHT,
+  UP_1, 
+  DOWN_1,
+  LEFT_1,
+  RIGHT_1,
+
+  UP_2, 
+  DOWN_2,
+  LEFT_2,
+  RIGHT_2,
 
   PAUSE,
   HALT,
@@ -49,6 +54,8 @@ class Model {
 
   std::list<Rabbit> rabbits_;
   std::list<Snake>  snakes_;
+  std::vector<int>  human_snakes_ids_; // vector which contains IDs of Snakes controlled by human (up to 2 people)
+  int next_snake_id_ = 0; // Счётчик для генерации уникальных ID змей
 
   using time_t = std::chrono::steady_clock::time_point;
   class Clock {
@@ -80,25 +87,28 @@ class Model {
 
     bool over() { return status_ == MODEL_STATE::GAME_OVER;}
     void update(const std::vector<Event>& events) {
-      
-      for (auto& snake: snakes_) {
-        Direction nextDir = snake.getDirection();
-          
-        for (const auto& event : events) {
-          if      (event.type_ == EventType::UP    && nextDir != Direction::DOWN)  snake.setDirection(Direction::UP);
-          else if (event.type_ == EventType::DOWN  && nextDir != Direction::UP)    snake.setDirection(Direction::DOWN);
-          else if (event.type_ == EventType::LEFT  && nextDir != Direction::RIGHT) snake.setDirection(Direction::LEFT);
-          else if (event.type_ == EventType::RIGHT && nextDir != Direction::LEFT)  snake.setDirection(Direction::RIGHT);
-          
-          if (event.type_ == EventType::HALT) status_ = MODEL_STATE::GAME_OVER;
+      for (const auto& event : events) {
+        switch(event.type_) {
+
+          case EventType::UP_1:    updateSnakeDirection(0, Direction::UP);    break;
+          case EventType::DOWN_1:  updateSnakeDirection(0, Direction::DOWN);  break;
+          case EventType::LEFT_1:  updateSnakeDirection(0, Direction::LEFT);  break;
+          case EventType::RIGHT_1: updateSnakeDirection(0, Direction::RIGHT); break;
+
+          // Управление вторым игроком (индекс 1)
+          case EventType::UP_2:    updateSnakeDirection(1, Direction::UP);    break;
+          case EventType::DOWN_2:  updateSnakeDirection(1, Direction::DOWN);  break;
+          case EventType::LEFT_2:  updateSnakeDirection(1, Direction::LEFT);  break;
+          case EventType::RIGHT_2: updateSnakeDirection(1, Direction::RIGHT); break;
+
+          case EventType::HALT: status_ = MODEL_STATE::GAME_OVER; break;
         }
       }
       
       auto it = snakes_.begin();
       while (it != snakes_.end()) {
-
         switch(it->getState()) {
-          case SnakeStatus::ROTTED: it = snakes_.erase(it); break;
+          case SnakeStatus::ROTTED: removeSnake(it->getID()); break;
           case SnakeStatus::DEAD: ++it; break;
           case SnakeStatus::ALIVE: {
             it->move();
@@ -131,8 +141,38 @@ class Model {
     int getColShift() const noexcept {return shift_col;}
     int getRowShift() const noexcept {return shift_row;}
 
-    void addSnake(Snake snake)    {snakes_.push_back(snake);  }
-    void addRabbit(Rabbit rabbit) {rabbits_.push_back(rabbit);}
+     // Helper для поиска змеи по ID (возвращает итератор или end())
+    std::list<Snake>::iterator findSnakeById(int id) {
+      return std::find_if(snakes_.begin(), snakes_.end(), 
+        [id](const Snake& s){ return s.getID() == id; });
+    }
+
+    void removeSnake(int id) {
+      auto it = findSnakeById(id);
+      if (it != snakes_.end()) {
+        snakes_.erase(it);
+        for (int i = 0; i < human_snakes_ids_.size(); ++i) {
+          if (human_snakes_ids_[i] == id) {
+            human_snakes_ids_.erase(human_snakes_ids_.begin() + i);
+            break;
+          }
+        }
+      }
+    }
+
+    void addSnake(Snake snake) {
+        snake.setID(next_snake_id_++);
+        snakes_.push_back(snake);
+
+        if (snake.isControlledByHyman()) {
+          human_snakes_ids_.push_back(snake.getID());
+        }
+    }
+
+    void addRabbit(Rabbit rabbit) {
+      rabbits_.push_back(rabbit);
+    
+    }
     std::list<Snake>  getSnakes()  {return snakes_; }
     std::list<Rabbit> getRabbits(){return rabbits_;}
 
@@ -188,6 +228,22 @@ class Model {
     }
     return false;
   }
+
+  bool checkSnakeCollision(const Snake& snake1, const Snake& snake2) {
+
+  if (&snake1 == &snake2) return false; // Это одна и та же змейка
+  
+  const auto& head1 = snake1.getHead();
+  
+  // Проверяем, не врезалась ли голова змейки 1 в тело змейки 2
+  for (const auto& segment : snake2.getBody()) {
+    if (head1.x == segment.x && head1.y == segment.y) {
+      return true;
+    }
+  }
+  
+  return false;
+}
   
   void handleRabbitCollision(Snake& snake) {
     const auto& head = snake.getHead();
@@ -234,4 +290,22 @@ class Model {
 
     return true;
   }
+
+  void updateSnakeDirection(size_t playerIdx, Direction newDir) {
+  if (playerIdx < human_snakes_ids_.size()) {
+    auto snake = findSnakeById(playerIdx);
+    
+    Direction currentDir = snake->getDirection();
+    
+    bool isOpposite = 
+        (newDir == Direction::UP    && currentDir == Direction::DOWN)  ||
+        (newDir == Direction::DOWN  && currentDir == Direction::UP)    ||
+        (newDir == Direction::LEFT  && currentDir == Direction::RIGHT) ||
+        (newDir == Direction::RIGHT && currentDir == Direction::LEFT);
+
+    if (!isOpposite) {
+      snake->setDirection(newDir);
+    }
+  }
+}
 };

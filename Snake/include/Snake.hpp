@@ -20,6 +20,11 @@ enum class SnakeStatus {
   ROTTED, // hiden  
 };
 
+enum class Controlled_By {
+  human,
+  bot, 
+};
+
 struct Segment {
   int x, y;
   SegmentType type; // Вместо char sbl
@@ -30,6 +35,8 @@ struct Segment {
 };
 
 class Snake {
+  int id_;
+  Controlled_By      cntrl_;
   SnakeStatus        state_;
   std::list<Segment>  body_;
   Direction      direction_;
@@ -38,10 +45,11 @@ class Snake {
   bool should_grow_;
 
   public: 
-    Snake(const SnakeStatus& state, const std::list<Segment>& body, const Direction& direction, const Segment& rudimentary_tail): 
-      state_(state), body_(body), direction_(direction), rudimentary_tail_(rudimentary_tail) {}
+    Snake(const Controlled_By& cntrl, const SnakeStatus& state, const std::list<Segment>& body, const Direction& direction, const Segment& rudimentary_tail): 
+      cntrl_(cntrl), state_(state), body_(body), direction_(direction), rudimentary_tail_(rudimentary_tail) {}
 
     struct Builder {
+      Controlled_By      cntrl_{Controlled_By::bot};
       SnakeStatus        state_{SnakeStatus::ALIVE};
       std::list<Segment>  body_{};
       Direction      direction_{Direction::RIGHT};
@@ -70,14 +78,19 @@ class Snake {
         return *this;
       }
 
+      Builder& setHumanControlled(const Controlled_By& cntrl) {
+        cntrl_ = cntrl;
+        return *this;
+      }
+
       Snake build() const {
-        return Snake(state_, body_, direction_, rudimentary_tail_);
+        return Snake(cntrl_, state_, body_, direction_, rudimentary_tail_);
       }
     };
 
-    void move() {
+  void move() {
     if (body_.empty()) return;
-
+    
     Segment newHead = body_.front();
     body_.front().type = SegmentType::BODY; 
 
@@ -92,13 +105,13 @@ class Snake {
 
     if (should_grow_) {
       should_grow_ = false;
-      rudimentary_tail_ = Segment(0, 0, SegmentType::BODY);
+      // При росте не удаляем хвост, но и не обновляем rudimentary_tail_
+      // Просто оставляем старый rudimentary_tail_
     } else {
       rudimentary_tail_ = body_.back();
       body_.pop_back();
     }
-
-  }
+}
 
     void grow() {
       should_grow_ = true;
@@ -115,7 +128,12 @@ class Snake {
     Segment            getTail() const noexcept {return rudimentary_tail_;}
     std::list<Segment> getBody() const noexcept {return body_;}
     Segment            getHead() const noexcept {return body_.front();}
-    SnakeStatus       getState() const noexcept {return state_;}
-    Direction getDirection()     const noexcept {return direction_;}
-    void      setDirection(Direction dir) noexcept {direction_ = dir;}
+    SnakeStatus        getState() const noexcept {return state_;}
+    int                getID()    const noexcept {return id_;}
+    bool   isControlledByHyman() const noexcept {return cntrl_ == Controlled_By::human;}
+    bool     isControlledByBot() const noexcept {return cntrl_ == Controlled_By::bot;}
+    Direction     getDirection() const noexcept {return direction_;}
+
+    void setDirection(Direction dir) noexcept {direction_ = dir;}
+    void setID(size_t id) noexcept {id_ = id;}
 };

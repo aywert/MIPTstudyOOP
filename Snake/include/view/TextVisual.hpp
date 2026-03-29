@@ -182,43 +182,70 @@ class TextVisual: public View {
     void drawSpace(Snake& snake) override{};
 
   Event getEvent(long time_mlsec) override {
-      fd_set read_fds;
-      Event event; 
-     
-      FD_ZERO(&read_fds);
-      FD_SET(STDIN_FILENO, &read_fds);
-      
-      struct timeval timeout;
-      timeout.tv_sec = 0;
-      timeout.tv_usec = time_mlsec*1000; //need to be more than tick of model
+    fd_set read_fds;
+    Event event; 
+    
+    FD_ZERO(&read_fds);
+    FD_SET(STDIN_FILENO, &read_fds);
+    
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = time_mlsec*1000; //need to be more than tick of model
 
-      int retval = select(STDIN_FILENO + 1, &read_fds, NULL, NULL, &timeout);
-      
-      if (retval == -1) {
-        fprintf(stderr, "select error\n");
-        return event;
-      } 
-      else if (retval > 0) {
-        char ch;
-        while (read(STDIN_FILENO, &ch, 1) > 0) {
-          EventType type;
-          bool valid = true;
-          switch(ch) {
-            case 'w': type = EventType::UP;    break;
-            case 'a': type = EventType::LEFT;  break;
-            case 's': type = EventType::DOWN;  break;
-            case 'd': type = EventType::RIGHT; break;
-            case 'p': type = EventType::PAUSE; break;
-            default:  valid = false;           break;
+    int retval = select(STDIN_FILENO + 1, &read_fds, NULL, NULL, &timeout);
+    
+    if (retval == -1) {
+      fprintf(stderr, "select error\n");
+      return event;
+    } 
+    else if (retval > 0) {
+      char ch;
+      while (read(STDIN_FILENO, &ch, 1) > 0) {
+        EventType type;
+        bool valid = true;
+        switch(ch) {
+          //player number 1
+          case 'w': type = EventType::UP_1;    break;
+          case 'a': type = EventType::LEFT_1;  break;
+          case 's': type = EventType::DOWN_1;  break;
+          case 'd': type = EventType::RIGHT_1; break;
+
+          case 'p': type = EventType::PAUSE;   break;
+
+          case '\x1b': { 
+            char seq[2];
+            const ssize_t n1 = ::read(STDIN_FILENO, &seq[0], 1);
+            const ssize_t n2 = ::read(STDIN_FILENO, &seq[1], 1);
+
+            if (n1 <= 0 || n2 <= 0) {
+              event.setEventType(EventType::BAD);
+              break;
+            }
+
+            if (seq[0] == '[') {
+              switch (seq[1]) {
+                case 'A': type = EventType::UP_2;    break;   
+                case 'B': type = EventType::DOWN_2;  break;
+                case 'C': type = EventType::RIGHT_2; break;
+                case 'D': type = EventType::LEFT_2;  break;
+                default: valid = false; break;;
+              }
+            }
+
+            break;
           }
-          if (valid) {
-            event.setEventType(type); 
-          }
+
+          default:  valid = false; break;          
+        }
+
+        if (valid) {
+          event.setEventType(type); 
         }
       }
-
-      return event;
     }
+    
+    return event;
+  }
 
     TextVisual(Model& model) {
       offsetX = model.getRowShift();
