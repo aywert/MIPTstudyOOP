@@ -104,6 +104,8 @@ class Model {
           case EventType::HALT: status_ = MODEL_STATE::GAME_OVER; break;
         }
       }
+
+      botMovementHandle();
       
       auto it = snakes_.begin();
       while (it != snakes_.end()) {
@@ -164,7 +166,7 @@ class Model {
       snake.setID(next_snake_id_++);
       snakes_.push_back(snake);
 
-      if (snake.isControlledByHyman()) {
+      if (snake.isControlledByHuman()) {
         human_snakes_ids_.push_back(snake.getID());
       }
     }
@@ -234,7 +236,7 @@ class Model {
         }
       }
     }
-    
+
     return false;
 }
 
@@ -305,7 +307,60 @@ class Model {
         }
       }
     }
+  }
+
+
+  void botMovementHandle() {
+    for (auto& bot : snakes_) {
+        if (bot.isControlledByHuman()) continue;
+
+        Segment head = bot.getHead();
+        Direction currentDir = bot.getDirection();
+        Direction nextDir = currentDir;
+
+        Rabbit food = nearestRabbit(bot);
+        
+        // ОШИБКА БЫЛА ТУТ: используем continue, чтобы не блокировать других ботов
+        if (food.getX() == -1) continue; 
+
+        int x = food.getX();
+        int y = food.getY();
+
+        // Улучшенная логика выбора оси: идем туда, где расстояние больше
+        bool preferX = std::abs(x - head.x) > std::abs(y - head.y);
+
+       
+        if (x > head.x && currentDir != Direction::LEFT) nextDir = Direction::RIGHT;
+        else if (x < head.x && currentDir != Direction::RIGHT) nextDir = Direction::LEFT;
+        else if (y > head.y && currentDir != Direction::UP) nextDir = Direction::DOWN;
+        else if (y < head.y && currentDir != Direction::DOWN) nextDir = Direction::UP;
+        
+
+        bot.setDirection(nextDir);
+    }
 }
+
+
+  Rabbit nearestRabbit(const Snake& snake) {
+    const auto& head = snake.getHead();
+    Rabbit* closest = nullptr;
+    int minDistance = window_height_* window_height_ + window_width_*window_width_;
+
+    for (auto& rabbit : rabbits_) {
+      // Вычисляем квадрат расстояния
+      int dx = head.x - rabbit.getX();
+      int dy = head.y - rabbit.getY();
+      int distanceSq = dx * dx + dy * dy;
+
+      if (distanceSq <= minDistance) {
+        minDistance = distanceSq;
+        closest = &rabbit;
+      }
+    }
+
+    return (closest != nullptr) ? *closest : Rabbit(-1, -1); 
+  }
+
 };
 
 
