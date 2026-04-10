@@ -28,10 +28,17 @@ class Controller {
         .setColor(33)
         .setBody(Segment(10, 20, SegmentType::BODY))
         .build();
+
+      Snake bot_2 = Snake::Builder()
+        .setHumanControlled(Controlled_By::bot)
+        .setColor(36)
+        .setBody(Segment(30, 20, SegmentType::BODY))
+        .build();
       
       model_.addSnake(snake_1);
       model_.addSnake(snake_2);
       model_.addSnake(bot_1);
+      model_.addSnake(bot_2);
 
       while (!model_.over()) 
       { 

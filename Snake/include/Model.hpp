@@ -31,8 +31,8 @@ enum class EventType {
   BAD,
 };
 
-constexpr long long SPAWN_INTERVAL =  100;
-constexpr int       MAX_RABBITS    =   50;
+constexpr long long SPAWN_INTERVAL = 1000;
+constexpr int       MAX_RABBITS    =   10;
 constexpr int       SHIFT_COL      =    2;
 constexpr int       SHIFT_ROW      =    2;
 
@@ -320,15 +320,10 @@ class Model {
 
         Rabbit food = nearestRabbit(bot);
         
-        // ОШИБКА БЫЛА ТУТ: используем continue, чтобы не блокировать других ботов
         if (food.getX() == -1) continue; 
 
         int x = food.getX();
         int y = food.getY();
-
-        // Улучшенная логика выбора оси: идем туда, где расстояние больше
-        bool preferX = std::abs(x - head.x) > std::abs(y - head.y);
-
        
         if (x > head.x && currentDir != Direction::LEFT) nextDir = Direction::RIGHT;
         else if (x < head.x && currentDir != Direction::RIGHT) nextDir = Direction::LEFT;
