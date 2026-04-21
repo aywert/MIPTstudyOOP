@@ -27,7 +27,7 @@ enum class Controlled_By {
 
 struct Segment {
   int x, y;
-  SegmentType type; // Вместо char sbl
+  SegmentType type;
 
   Segment(int x, int y, SegmentType t = SegmentType::BODY) : x(x), y(y), type(t) {}
   Segment() = default; 

@@ -31,6 +31,11 @@ enum class EventType {
   BAD,
 };
 
+struct Point {
+  int x, y;
+};
+
+
 constexpr long long SPAWN_INTERVAL = 1000;
 constexpr int       MAX_RABBITS    =   10;
 constexpr int       SHIFT_COL      =    2;
@@ -331,27 +336,12 @@ void botMovementHandle() {
   }
 }
 
-Direction easy_bot_calcul_direction(const Snake& bot) {
-  Segment head = bot.getHead();
-  Direction currentDir = bot.getDirection();
-  Direction nextDir = currentDir;
-
-  Rabbit food = nearestRabbit(bot);
-  
-  if (food.getX() == -1) return bot.getDirection(); 
-
-  int x = food.getX();
-  int y = food.getY();
-  
-  if      (x > head.x && currentDir != Direction::LEFT)  nextDir = Direction::RIGHT;
-  else if (x < head.x && currentDir != Direction::RIGHT) nextDir = Direction::LEFT;
-  else if (y > head.y && currentDir != Direction::UP)    nextDir = Direction::DOWN;
-  else if (y < head.y && currentDir != Direction::DOWN)  nextDir = Direction::UP;
-
-  return nextDir;
+Direction smart_bot_calcul_direction(const Snake& bot) {
+  const auto heatMap = generateHeatmap(window_width_, window_height_, bot);
+  return chooseBestMoveBasedOnHeatMap(bot, window_width_, window_height_, heatMap);
 }
 
-Direction smart_bot_calcul_direction(const Snake& bot) {
+Direction easy_bot_calcul_direction(const Snake& bot) {
     Segment head = bot.getHead();
     Direction currentDir = bot.getDirection();
     Direction desiredDir = currentDir;
@@ -464,13 +454,92 @@ Direction smart_bot_calcul_direction(const Snake& bot) {
     return true;
   }
 
-  // Проверка, находится ли кролик в клетке
-  bool isRabbitAt(int x, int y) const {
-    for (const auto& r : rabbits_)
-      if (r.getX() == x && r.getY() == y)
-        return true;
-    return false;
+  std::vector<std::vector<double>> generateHeatmap(int width, int height, const Snake& snake) {
+    // Создаем матрицу, заполненную нулями
+    std::vector<std::vector<double>> heatmap(width, std::vector<double>(height, 0.0));
+
+    // Проходим по каждому яблоку
+    for (const auto& rabbit : rabbits_) {
+      for (int x = 0; x < width; ++x) {
+        for (int y = 0; y < height; ++y) {
+          // Считаем Манхэттенское расстояние
+          int dist = std::abs(x - rabbit.getX()) + std::abs(y - rabbit.getY());
+          
+          heatmap[x][y] += 100.0 / (dist + 1.0);
+          
+        }
+      }
+    }
+
+    for (const auto& enemy: snakes_) {
+      if (&enemy == &snake) continue; 
+      auto head = enemy.getHead();
+      for (int x = 0; x < width; ++x) {
+        for (int y = 0; y < height; ++y) {
+          // Считаем Манхэттенское расстояние
+          int dist = std::abs(x - head.x) + std::abs(y - head.y);
+          
+          heatmap[x][y] -= 150.0 / (dist + 1.0); 
+        }
+      }
+    }
+
+
+    // 3. ГРАНИЦЫ (Штраф за близость к стенам)
+    for (int x = 0; x < width; ++x) {
+      for (int y = 0; y < height; ++y) {
+        // Находим минимальное расстояние до любой из 4-х стен
+        int distToEdgeX = std::min(x, (width - 1) - x);
+        int distToEdgeY = std::min(y, (height - 1) - y);
+        int minDistToEdge = std::min(distToEdgeX, distToEdgeY);
+
+        if (minDistToEdge < 3) { 
+          heatmap[x][y] -= 50.0 / (minDistToEdge + 1.0);
+        }
+      }
+    }
+    return heatmap;
   }
+
+  // Пример использования для выбора хода
+  Direction chooseBestMoveBasedOnHeatMap(const Snake& snake, int width, int height, const std::vector<std::vector<double>>& heatmap) {
+    // Структура для связи направления и вектора движения
+    struct MoveOption {
+      Direction dir;
+      int dx;
+      int dy;
+    };
+
+    std::vector<MoveOption> options = {
+      {Direction::UP,    0, -1}, // Зависит от вашей системы координат (обычно Y- это вверх)
+      {Direction::DOWN,  0,  1},
+      {Direction::LEFT, -1,  0},
+      {Direction::RIGHT, 1,  0}
+    };
+    
+    Direction bestDirection = snake.getDirection(); // Значение по умолчанию
+    double maxScore = -1e18; // Очень маленькое число для инициализации
+
+    Segment head = snake.getHead();
+    for (const auto& option : options) {
+      int nextX = head.x + option.dx;
+      int nextY = head.y + option.dy;
+
+      // Проверка границ поля
+      if (nextX >= 0 && nextX < width && nextY >= 0 && nextY < height) {
+        // Если эта клетка лучше всех предыдущих
+        if (isPositionSafe(nextX, nextY)) {
+          if (heatmap[nextX][nextY] > maxScore) {
+            maxScore = heatmap[nextX][nextY];
+            bestDirection = option.dir;
+          }
+        }
+      }
+    }
+
+    return bestDirection;
+  }
+
 
 };
 
