@@ -5,13 +5,20 @@
 #include "Controller.hpp"
 
 int main() {
-  std::signal(SIGWINCH, handle_winch);
+  
+    std::signal(SIGWINCH, handle_winch);
+    
+    Model model(50, 40, 120);
 
-  // struct winsize w;
-  // ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+    try {
+      GraphicVisual tv(model);  // Если здесь будет исключение - перейдет в catch
+    
+    Controller ctrl(model, tv);
+    ctrl.run();
 
-  Model model(50, 40, 120);
-  GraphicVisual tv(model);
-  Controller ctrl(model, tv);
-  ctrl.run();
+    } catch (const std::runtime_error& e) {
+    std::cerr << "Runtime error: " << e.what() << std::endl;
+    return 1;
+    
+  } 
 }

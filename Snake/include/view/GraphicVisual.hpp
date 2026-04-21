@@ -16,17 +16,7 @@ class GraphicVisual: public View {
   int Width;
   sf::RenderWindow window_;
   
-  // Текстуры для разных типов объектов
-  sf::Texture headTexture_;
-  sf::Texture bodyTexture_;
-  sf::Texture rabbitTexture_;
-
-  sf::Sprite headSprite_;
-  sf::Sprite bodySprite_;
-  sf::Sprite rabbitSprite_;
-  // Шрифт для текста
   sf::Font font_;
-  sf::Text scoreText_;
 
   sf::Color convertToSfmlColor(int colorId);
 
@@ -34,6 +24,8 @@ class GraphicVisual: public View {
     void clearScreen() override {}
     void setColor(int color) override{};
     void render(Model& model) override;
+
+    void drawBox(Model& model);
     void drawRabbit(const Rabbit& rabbit) override;
     void drawSnake(const Snake& snake)    override;
     void drawSpace(Snake& snake) override{};

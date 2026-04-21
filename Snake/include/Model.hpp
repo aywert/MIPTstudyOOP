@@ -179,7 +179,7 @@ class Model {
     
     }
     std::list<Snake>&  getSnakes()  {return snakes_; }
-    std::list<Rabbit>& getRabbits(){return rabbits_;}
+    std::list<Rabbit> getRabbits(){return rabbits_;}
 
     void spawnRabbit() {
       static std::mt19937 gen(
