@@ -110,7 +110,7 @@ class Model {
       auto it = snakes_.begin();
       while (it != snakes_.end()) {
         switch(it->getState()) {
-          case SnakeStatus::ROTTED: removeSnake(it->getID()); break;
+          case SnakeStatus::ROTTED: it = removeSnake(it->getID()); break;
           case SnakeStatus::DEAD: ++it; break;
           case SnakeStatus::ALIVE: {
             it->move();
@@ -149,10 +149,11 @@ class Model {
         [id](const Snake& s){ return s.getID() == id; });
     }
 
-    void removeSnake(int id) {
+    std::list<Snake>::iterator removeSnake(int id) {
       auto it = findSnakeById(id);
+      std::list<Snake>::iterator new_it = it;
       if (it != snakes_.end()) {
-        snakes_.erase(it);
+        new_it = snakes_.erase(it);
         for (int i = 0; i < human_snakes_ids_.size(); ++i) {
           if (human_snakes_ids_[i] == id) {
             human_snakes_ids_.erase(human_snakes_ids_.begin() + i);
@@ -160,6 +161,8 @@ class Model {
           }
         }
       }
+
+      return new_it;
     }
 
     void addSnake(Snake snake) {
@@ -175,8 +178,8 @@ class Model {
       rabbits_.push_back(rabbit);
     
     }
-    std::list<Snake>  getSnakes()  {return snakes_; }
-    std::list<Rabbit> getRabbits(){return rabbits_;}
+    std::list<Snake>&  getSnakes()  {return snakes_; }
+    std::list<Rabbit>& getRabbits(){return rabbits_;}
 
     void spawnRabbit() {
       static std::mt19937 gen(
@@ -223,6 +226,12 @@ class Model {
     const auto& head = headSnake.getHead();
 
     for (const auto& otherSnake : snakes_) {
+
+      // Проверяем только живых змеек
+      if (otherSnake.getState() != SnakeStatus::ALIVE) {
+          continue;
+      }
+
       const auto& body = otherSnake.getBody(); // Предполагаем, что это const std::list<Point>&
       
       // Если проверяем саму себя — начинаем со второго элемента (пропускаем голову).
