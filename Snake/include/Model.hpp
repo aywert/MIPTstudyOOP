@@ -304,7 +304,7 @@ class Model {
       
       auto snake = findSnakeById(snakeId);
       
-      if (snake != snakes_.end() && snake->getState() == SnakeStatus::ALIVE) {  // Всегда проверяй, найдена ли змея!
+      if (snake != snakes_.end() && snake->getState() == SnakeStatus::ALIVE) {  
         Direction currentDir = snake->getDirection();
         bool isOpposite = 
           (newDir == Direction::UP    && currentDir == Direction::DOWN)  ||
@@ -320,29 +320,100 @@ class Model {
   }
 
 
-  void botMovementHandle() {
-    for (auto& bot : snakes_) {
-      if (bot.isControlledByHuman()) continue;
+void botMovementHandle() {
+  for (auto& bot : snakes_) {
+    if (bot.isControlledByHuman()) continue;
 
-      Segment head = bot.getHead();
-      Direction currentDir = bot.getDirection();
-      Direction nextDir = currentDir;
+    //Direction nextDir = easy_bot_calcul_direction(bot);
+    Direction nextDir = smart_bot_calcul_direction(bot);
 
-      Rabbit food = nearestRabbit(bot);
-      
-      if (food.getX() == -1) continue; 
+    bot.setDirection(nextDir);
+  }
+}
 
+Direction easy_bot_calcul_direction(const Snake& bot) {
+  Segment head = bot.getHead();
+  Direction currentDir = bot.getDirection();
+  Direction nextDir = currentDir;
+
+  Rabbit food = nearestRabbit(bot);
+  
+  if (food.getX() == -1) return bot.getDirection(); 
+
+  int x = food.getX();
+  int y = food.getY();
+  
+  if      (x > head.x && currentDir != Direction::LEFT)  nextDir = Direction::RIGHT;
+  else if (x < head.x && currentDir != Direction::RIGHT) nextDir = Direction::LEFT;
+  else if (y > head.y && currentDir != Direction::UP)    nextDir = Direction::DOWN;
+  else if (y < head.y && currentDir != Direction::DOWN)  nextDir = Direction::UP;
+
+  return nextDir;
+}
+
+Direction smart_bot_calcul_direction(const Snake& bot) {
+    Segment head = bot.getHead();
+    Direction currentDir = bot.getDirection();
+    Direction desiredDir = currentDir;
+    
+    // Находим ближайшего кролика
+    Rabbit food = nearestRabbit(bot);
+    if (food.getX() != -1) {
       int x = food.getX();
       int y = food.getY();
       
-      if      (x > head.x && currentDir != Direction::LEFT)  nextDir = Direction::RIGHT;
-      else if (x < head.x && currentDir != Direction::RIGHT) nextDir = Direction::LEFT;
-      else if (y > head.y && currentDir != Direction::UP)    nextDir = Direction::DOWN;
-      else if (y < head.y && currentDir != Direction::DOWN)  nextDir = Direction::UP;
-      
-
-      bot.setDirection(nextDir);
+      // Жадное приближение к кролику (без разворота)
+      if      (x > head.x && currentDir != Direction::LEFT)  desiredDir = Direction::RIGHT;
+      else if (x < head.x && currentDir != Direction::RIGHT) desiredDir = Direction::LEFT;
+      else if (y > head.y && currentDir != Direction::UP)    desiredDir = Direction::DOWN;
+      else if (y < head.y && currentDir != Direction::DOWN)  desiredDir = Direction::UP;
     }
+    
+    // Проверяем, безопасно ли желаемое направление
+    Segment next = head;
+    switch (desiredDir) {
+      case Direction::UP:    next.y--; break;
+      case Direction::DOWN:  next.y++; break;
+      case Direction::LEFT:  next.x--; break;
+      case Direction::RIGHT: next.x++; break;
+    }
+    
+    if (isPositionSafe(next.x, next.y)) {
+      return desiredDir;  // Желаемое направление безопасно
+    }
+    
+    // Если желаемое направление небезопасно, ищем альтернативу
+    // Приоритет: прямо, налево, направо, назад (но без разворота)
+    std::vector<Direction> priorities;
+    priorities.push_back(currentDir);  // Сначала пробуем текущее направление
+    
+    // Добавляем боковые направления
+    if (currentDir == Direction::UP || currentDir == Direction::DOWN) {
+      priorities.push_back(Direction::LEFT);
+      priorities.push_back(Direction::RIGHT);
+    } else {
+      priorities.push_back(Direction::UP);
+      priorities.push_back(Direction::DOWN);
+    }
+    
+    
+    // Проверяем все направления в порядке приоритета
+    for (Direction dir : priorities) {
+      Segment test = head;
+      switch (dir) {
+        case Direction::UP:    test.y--; break;
+        case Direction::DOWN:  test.y++; break;
+        case Direction::LEFT:  test.x--; break;
+        case Direction::RIGHT: test.x++; break;
+      }
+      
+      if (isPositionSafe(test.x, test.y)) {
+        return dir;
+      }
+    }
+    
+    // Если всё заблокировано (скорое всего смерть), остаёмся в текущем направлении
+    return currentDir;
 }
 
 
@@ -364,6 +435,41 @@ class Model {
     }
 
     return (closest != nullptr) ? *closest : Rabbit(-1, -1); 
+  }
+
+
+  bool isPositionSafe(int x, int y) const {
+    
+    int min_x = shift_col + 1;
+    int max_x = window_width_ - shift_col;
+    int min_y = shift_row + 1;
+    int max_y = window_height_ - shift_row;
+    
+    bool collision = (x < min_x || x > max_x || 
+                      y < min_y || y > max_y);
+
+    if (collision) {
+      return false;
+    }
+    
+    // Проверка змеек
+    for (const auto& snake : snakes_) {
+      for (const auto& segment : snake.getBody()) {
+        if (segment.x == x && segment.y == y) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  // Проверка, находится ли кролик в клетке
+  bool isRabbitAt(int x, int y) const {
+    for (const auto& r : rabbits_)
+      if (r.getX() == x && r.getY() == y)
+        return true;
+    return false;
   }
 
 };
