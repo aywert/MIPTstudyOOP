@@ -8,12 +8,14 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 
-constexpr int block_size = 20;
+
 
 class GraphicVisual: public View {
 
   int Height;
   int Width;
+
+  int block_size = 20;
   sf::RenderWindow window_;
   
   sf::Font font_;
@@ -38,5 +40,7 @@ class GraphicVisual: public View {
     void showCursor() {};
 
     Event getEvent(long time_mcsec) override;
+
+    void handleResize(unsigned int newWidth, unsigned int newHeight);
     GraphicVisual(Model& model);
 };

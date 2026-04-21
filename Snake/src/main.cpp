@@ -11,7 +11,7 @@ int main() {
     Model model(50, 40, 120);
 
     try {
-      GraphicVisual tv(model);  // Если здесь будет исключение - перейдет в catch
+      GraphicVisual tv(model);  
     
     Controller ctrl(model, tv);
     ctrl.run();

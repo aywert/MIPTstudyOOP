@@ -13,7 +13,7 @@ void GraphicVisual::render(Model& model) {
     // Плавный переход цвета сверху вниз
     int r = 30 + i * 40 / windowHeight;  // красный увеличивается
     int g = 10 + i * 20 / windowHeight;  // Зеленый увеличивается
-    int b = 100;  // Постоянный синий
+    int b = 70;  // Постоянный синий
     
     gradient.setFillColor(sf::Color(r, g, b));
     gradient.setPosition(0, i);
@@ -54,6 +54,9 @@ Event GraphicVisual::getEvent(long time_mcsec) {
     switch (sfmlEvent.type) {
       case sf::Event::Closed:
         return Event(EventType::HALT);
+      case sf::Event::Resized:  // Добавить обработку resize
+        handleResize(sfmlEvent.size.width, sfmlEvent.size.height);
+        return Event();
           
       case sf::Event::KeyPressed:
         switch (sfmlEvent.key.code) {
@@ -90,6 +93,22 @@ Event GraphicVisual::getEvent(long time_mcsec) {
 
   return Event(); // BAD событие
 } 
+
+void GraphicVisual::handleResize(unsigned int newWidth, unsigned int newHeight) {
+  float gameAspect = (float)(Width * block_size) / (Height * block_size);
+  float windowAspect = (float)newWidth / newHeight;
+  
+  sf::View view(sf::FloatRect(0, 0, Width * block_size, Height * block_size));
+  
+  if (windowAspect > gameAspect) {
+    float viewportWidth = gameAspect / windowAspect;
+    view.setViewport(sf::FloatRect((1 - viewportWidth) / 2, 0, viewportWidth, 1));
+  } else {
+    float viewportHeight = windowAspect / gameAspect;
+    view.setViewport(sf::FloatRect(0, (1 - viewportHeight) / 2, 1, viewportHeight));
+  }
+  window_.setView(view);
+}
 
 void GraphicVisual::drawSnake(const Snake& snake) {
   const auto& body = snake.getBody();

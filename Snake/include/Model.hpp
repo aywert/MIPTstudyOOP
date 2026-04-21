@@ -26,6 +26,7 @@ enum class EventType {
   LEFT_2,
   RIGHT_2,
 
+  RESIZE,
   PAUSE,
   HALT,
   BAD,
