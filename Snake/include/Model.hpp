@@ -26,7 +26,6 @@ enum class EventType {
   LEFT_2,
   RIGHT_2,
 
-  RESIZE,
   PAUSE,
   HALT,
   BAD,
@@ -157,7 +156,7 @@ class Model {
         new_it = snakes_.erase(it);
         for (int i = 0; i < human_snakes_ids_.size(); ++i) {
           if (human_snakes_ids_[i] == id) {
-            human_snakes_ids_.erase(human_snakes_ids_.begin() + i);
+            human_snakes_ids_[i] = 0xDEAD;
             break;
           }
         }
@@ -230,7 +229,7 @@ class Model {
 
       // Проверяем только живых змеек
       if (otherSnake.getState() != SnakeStatus::ALIVE) {
-          continue;
+        continue;
       }
 
       const auto& body = otherSnake.getBody(); // Предполагаем, что это const std::list<Point>&
@@ -249,9 +248,6 @@ class Model {
 
     return false;
 }
-
-
-
 
   void handleRabbitCollision(Snake& snake) {
     const auto& head = snake.getHead();
@@ -301,10 +297,14 @@ class Model {
 
   void updateSnakeDirection(size_t playerIdx, Direction newDir) {
     if (playerIdx < human_snakes_ids_.size()) {
-      int snakeId = human_snakes_ids_[playerIdx];  // Берём реальный ID из вектора
+      int snakeId = human_snakes_ids_[playerIdx];
+
+      if (snakeId == 0xDEAD) 
+        return;
+      
       auto snake = findSnakeById(snakeId);
       
-      if (snake != snakes_.end()) {  // Всегда проверяй, найдена ли змея!
+      if (snake != snakes_.end() && snake->getState() == SnakeStatus::ALIVE) {  // Всегда проверяй, найдена ли змея!
         Direction currentDir = snake->getDirection();
         bool isOpposite = 
           (newDir == Direction::UP    && currentDir == Direction::DOWN)  ||
@@ -322,26 +322,26 @@ class Model {
 
   void botMovementHandle() {
     for (auto& bot : snakes_) {
-        if (bot.isControlledByHuman()) continue;
+      if (bot.isControlledByHuman()) continue;
 
-        Segment head = bot.getHead();
-        Direction currentDir = bot.getDirection();
-        Direction nextDir = currentDir;
+      Segment head = bot.getHead();
+      Direction currentDir = bot.getDirection();
+      Direction nextDir = currentDir;
 
-        Rabbit food = nearestRabbit(bot);
-        
-        if (food.getX() == -1) continue; 
+      Rabbit food = nearestRabbit(bot);
+      
+      if (food.getX() == -1) continue; 
 
-        int x = food.getX();
-        int y = food.getY();
-       
-        if (x > head.x && currentDir != Direction::LEFT) nextDir = Direction::RIGHT;
-        else if (x < head.x && currentDir != Direction::RIGHT) nextDir = Direction::LEFT;
-        else if (y > head.y && currentDir != Direction::UP) nextDir = Direction::DOWN;
-        else if (y < head.y && currentDir != Direction::DOWN) nextDir = Direction::UP;
-        
+      int x = food.getX();
+      int y = food.getY();
+      
+      if      (x > head.x && currentDir != Direction::LEFT)  nextDir = Direction::RIGHT;
+      else if (x < head.x && currentDir != Direction::RIGHT) nextDir = Direction::LEFT;
+      else if (y > head.y && currentDir != Direction::UP)    nextDir = Direction::DOWN;
+      else if (y < head.y && currentDir != Direction::DOWN)  nextDir = Direction::UP;
+      
 
-        bot.setDirection(nextDir);
+      bot.setDirection(nextDir);
     }
 }
 
