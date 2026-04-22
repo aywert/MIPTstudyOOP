@@ -37,10 +37,6 @@ struct Point {
 };
 
 
-constexpr long long SPAWN_INTERVAL =  500;
-constexpr int       MAX_RABBITS    =   20;
-constexpr int       SHIFT_COL      =    2;
-constexpr int       SHIFT_ROW      =    2;
 
 struct Event {
   EventType type_;
@@ -53,9 +49,17 @@ struct Event {
 class Model {
   MODEL_STATE status_;
 
-  int window_width_ = 0, window_height_ = 0;
+  long long SPAWN_INTERVAL =  500;
+  int       MAX_RABBITS    =   20;
+  int       SHIFT_COL      =    2;
+  int       SHIFT_ROW      =    2;
+
+  int       window_width_  =    0; 
+  int       window_height_ =    0;
+
   int shift_col = SHIFT_COL; 
   int shift_row = SHIFT_ROW; 
+  Controlled_By last_snake_type_ = Controlled_By::human; // keeps a record of the last killed snakes type
   size_t tick_;
 
   std::list<Rabbit> rabbits_;
@@ -90,8 +94,35 @@ class Model {
     MODEL_STATE getStatus() { return status_; };
 
     Clock RabbitTimer;
+    bool try_kill() {
+      // Подсчитываем только живых змей
+      if (snakes_.size() == 1) { 
+        status_ = MODEL_STATE::GAME_OVER;
+        last_snake_type_ = snakes_.front().getCntrlBy();
+        return true;
+      }
+      
+      return false;
+    }
 
-    bool over() { return status_ == MODEL_STATE::GAME_OVER;}
+    bool over()  { return status_ == MODEL_STATE::GAME_OVER;}
+    void refresh() {
+      SPAWN_INTERVAL =  500;
+      MAX_RABBITS    =   20;
+      SHIFT_COL      =    2;
+      SHIFT_ROW      =    2;
+
+      next_snake_id_ = 0;
+      snakes_.clear();
+      rabbits_.clear();
+      human_snakes_ids_.clear();
+
+      last_snake_type_ = Controlled_By::human;
+
+      status_ = MODEL_STATE::IN_PROCCESS;
+      RabbitTimer.reset();
+    }
+
     void update(const std::vector<Event>& events) {
       std::optional<Direction> new_direction_1;
       std::optional<Direction> new_direction_2;
@@ -152,12 +183,17 @@ class Model {
 
     void setWidth(int width)   {window_width_  = width;}
     void setHeight(int height) {window_height_ = height;}
+    void setStatus(MODEL_STATE state) {status_ = state;}
+    void setSpawnInterval(long long time) {
+      SPAWN_INTERVAL =  time;
+    }    
 
     size_t getTicks() const noexcept {return tick_;}
     int    getWidth() const noexcept {return window_width_;}
     int   getHeight() const noexcept {return window_height_;}
     int getColShift() const noexcept {return shift_col;}
     int getRowShift() const noexcept {return shift_row;}
+    Controlled_By getLastSnakeType() const noexcept {return last_snake_type_;}
 
      // Helper для поиска змеи по ID (возвращает итератор или end())
     std::list<Snake>::iterator findSnakeById(int id) {
@@ -192,8 +228,8 @@ class Model {
 
     void addRabbit(Rabbit rabbit) {
       rabbits_.push_back(rabbit);
-    
     }
+
     std::list<Snake>&  getSnakes()  {return snakes_; }
     std::list<Rabbit> getRabbits(){return rabbits_;}
 

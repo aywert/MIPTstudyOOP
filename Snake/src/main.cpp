@@ -9,7 +9,7 @@
 // argv[] ./game -a human smart silly
 int main(int argc, char* argv[]) {
 
-  int num_human = 1;
+  int num_human      = 1;
   int num_smart_bots = 1;
   int num_silly_bots = 1;
   
@@ -65,7 +65,8 @@ int main(int argc, char* argv[]) {
     GraphicVisual tv(model);  
   
   Controller ctrl(model, tv);
-  ctrl.run(num_silly_bots, num_smart_bots, num_human);
+  ctrl.run();
+  //ctrl.run(num_silly_bots, num_smart_bots, num_human);
 
   } catch (const std::runtime_error& e) {
     std::cerr << "Runtime error: " << e.what() << std::endl;

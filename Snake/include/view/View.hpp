@@ -7,7 +7,8 @@ class View {
 
   public:
     virtual Event getEvent(long time_mcsec) = 0;
-
+    virtual void flashEvents()  {};
+    virtual void showFeatures(int n, int a, int b) {};
     virtual void clearScreen() = 0;
     virtual void render(Model& model) = 0;
     virtual void drawRabbit(const Rabbit& rabbit) = 0;

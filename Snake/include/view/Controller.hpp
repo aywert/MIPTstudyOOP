@@ -35,6 +35,37 @@ class Controller {
       }
     }
 
+    void run() {
+
+      int smart_wins = 0;
+      int silly_wins = 0;
+
+      for (int i = 0; i < 100; i++) {
+        setSnakes(1, 1, 0);
+        model_.setSpawnInterval(50);
+
+        while (!model_.over()) { 
+          usleep(1000);
+          if (model_.try_kill()) {
+            usleep(200000);
+            if      (model_.getLastSnakeType() == Controlled_By::silly_bot) silly_wins++;
+            else if (model_.getLastSnakeType() == Controlled_By::smart_bot) smart_wins++;
+          }
+
+          view_.flashEvents();//flashing events in order to empty sfml buffer
+
+          std::vector<Event> event;
+          model_.update(event);
+          view_.render(model_);
+          
+        }
+
+        view_.showFeatures(i, smart_wins, silly_wins);
+        model_.refresh();
+        usleep(2000000);
+      }
+    }
+
 
   void setSnakes(int num_of_silly_bots = 1, int num_of_smart_bots = 1, int num_of_human = 2) {
     
@@ -43,10 +74,10 @@ class Controller {
       num_of_human = 2;
     }
       
-    int min_x = SHIFT_COL + 1;
-    int max_x = model_.getWidth() - SHIFT_COL;
-    int min_y = SHIFT_ROW + 1;
-    int max_y = model_.getHeight() - SHIFT_ROW;
+    int min_x = model_.getColShift() + 1;
+    int max_x = model_.getWidth()  - model_.getColShift();
+    int min_y = model_.getRowShift() + 1;
+    int max_y = model_.getHeight() - model_.getRowShift();
 
     std::vector<int> colors = {32, 34, 33, 36, 35};
 
@@ -88,7 +119,6 @@ class Controller {
         .build();
       
       model_.addSnake(snake);
-      
     }
 
     for (int i = 0; i < num_of_silly_bots; ++i) {

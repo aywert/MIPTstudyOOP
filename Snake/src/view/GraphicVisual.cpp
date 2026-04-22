@@ -49,6 +49,200 @@ GraphicVisual::GraphicVisual(Model& model)
         }
       }
 
+void GraphicVisual::flashEvents() {
+  sf::Event sfmlEvent;
+  while (window_.pollEvent(sfmlEvent)) {
+    if (sfmlEvent.type == sf::Event::Closed) {
+      return;
+    }
+
+    if (sfmlEvent.type == sf::Event::Resized)
+      handleResize(sfmlEvent.size.width, sfmlEvent.size.height);
+      return;
+  }
+}
+
+void GraphicVisual::showFeatures(int round, int smart_wins, int silly_wins) {
+    window_.clear(sf::Color(20, 20, 30)); // Темно-синий фон вместо черного
+    
+    sf::Text text;
+    text.setFont(font_);
+    
+    // Получаем центр окна
+    float centerX = Width  * block_size / 2.0f;
+    float centerY = Height * block_size / 2.0f;
+    
+    // Заголовок
+    text.setString("=== TOURNAMENT RESULTS ===");
+    text.setCharacterSize(32);
+    text.setFillColor(sf::Color::Yellow);
+    text.setStyle(sf::Text::Bold);
+    // Центрируем заголовок
+    sf::FloatRect bounds = text.getLocalBounds();
+    text.setPosition(centerX - bounds.width / 2, 50);
+    window_.draw(text);
+    
+    // Разделительная линия
+    sf::RectangleShape line(sf::Vector2f(400, 2));
+    line.setFillColor(sf::Color(100, 100, 150));
+    line.setPosition(centerX - 200, 110);
+    window_.draw(line);
+    
+    // Текущий раунд
+    text.setString("ROUND " + std::to_string(round + 1) + " / 100");
+    text.setCharacterSize(24);
+    text.setFillColor(sf::Color::White);
+    text.setStyle(sf::Text::Regular);
+    bounds = text.getLocalBounds();
+    text.setPosition(centerX - bounds.width / 2, 130);
+    window_.draw(text);
+    
+    // Контейнер для результатов
+    float resultsY = 200;
+    float boxWidth = 250;
+    float boxHeight = 120;
+    float spacing = 40;
+    
+    // Левая панель (Smart Bot)
+    sf::RectangleShape smartBox(sf::Vector2f(boxWidth, boxHeight));
+    smartBox.setFillColor(sf::Color(0, 40, 0, 200));
+    smartBox.setOutlineColor(sf::Color::Green);
+    smartBox.setOutlineThickness(3);
+    smartBox.setPosition(centerX - boxWidth - spacing/2, resultsY);
+    window_.draw(smartBox);
+    
+    // Правая панель (Silly Bot)
+    sf::RectangleShape sillyBox(sf::Vector2f(boxWidth, boxHeight));
+    sillyBox.setFillColor(sf::Color(40, 0, 0, 200));
+    sillyBox.setOutlineColor(sf::Color::Red);
+    sillyBox.setOutlineThickness(3);
+    sillyBox.setPosition(centerX + spacing/2, resultsY);
+    window_.draw(sillyBox);
+    
+    // Smart Bot текст
+    text.setString("SMART BOT");
+    text.setCharacterSize(20);
+    text.setFillColor(sf::Color::Green);
+    text.setStyle(sf::Text::Bold);
+    bounds = text.getLocalBounds();
+    text.setPosition(centerX - boxWidth - spacing/2 + (boxWidth - bounds.width) / 2, resultsY + 20);
+    window_.draw(text);
+    
+    // Smart Bot очки
+    text.setString(std::to_string(smart_wins));
+    text.setCharacterSize(48);
+    text.setFillColor(sf::Color::White);
+    text.setStyle(sf::Text::Bold);
+    bounds = text.getLocalBounds();
+    text.setPosition(centerX - boxWidth - spacing/2 + (boxWidth - bounds.width) / 2, resultsY + 50);
+    window_.draw(text);
+    
+    // Silly Bot текст
+    text.setString("SILLY BOT");
+    text.setCharacterSize(20);
+    text.setFillColor(sf::Color::Red);
+    text.setStyle(sf::Text::Bold);
+    bounds = text.getLocalBounds();
+    text.setPosition(centerX + spacing/2 + (boxWidth - bounds.width) / 2, resultsY + 20);
+    window_.draw(text);
+    
+    // Silly Bot очки
+    text.setString(std::to_string(silly_wins));
+    text.setCharacterSize(48);
+    text.setFillColor(sf::Color::White);
+    text.setStyle(sf::Text::Bold);
+    bounds = text.getLocalBounds();
+    text.setPosition(centerX + spacing/2 + (boxWidth - bounds.width) / 2, resultsY + 50);
+    window_.draw(text);
+    
+    // VS между ними
+    text.setString("VS");
+    text.setCharacterSize(36);
+    text.setFillColor(sf::Color::Cyan);
+    text.setStyle(sf::Text::Bold);
+    bounds = text.getLocalBounds();
+    text.setPosition(centerX - bounds.width / 2, resultsY + boxHeight/2 - 20);
+    window_.draw(text);
+    
+    // Проценты
+    int total = smart_wins + silly_wins;
+    if (total > 0) {
+        float smart_percent = (smart_wins * 100.0f) / total;
+        float silly_percent = (silly_wins * 100.0f) / total;
+        
+        text.setString("WIN RATE");
+        text.setCharacterSize(16);
+        text.setFillColor(sf::Color(180, 180, 180));
+        text.setStyle(sf::Text::Regular);
+        bounds = text.getLocalBounds();
+        text.setPosition(centerX - bounds.width / 2, resultsY + boxHeight + 20);
+        window_.draw(text);
+        
+        text.setString("Smart " + std::to_string((int)smart_percent) + "%  |  Silly " + 
+                      std::to_string((int)silly_percent) + "%");
+        text.setCharacterSize(20);
+        text.setFillColor(sf::Color::Cyan);
+        text.setStyle(sf::Text::Bold);
+        bounds = text.getLocalBounds();
+        text.setPosition(centerX - bounds.width / 2, resultsY + boxHeight + 45);
+        window_.draw(text);
+    }
+    
+    // Прогресс-бар
+    float progressY = resultsY + boxHeight + 100;
+    float progressWidth = 500;
+    float progress = (round + 1) / 100.0f;
+    
+    // Заголовок прогресса
+    text.setString("TOURNAMENT PROGRESS");
+    text.setCharacterSize(14);
+    text.setFillColor(sf::Color(180, 180, 180));
+    text.setStyle(sf::Text::Regular);
+    bounds = text.getLocalBounds();
+    text.setPosition(centerX - bounds.width / 2, progressY - 20);
+    window_.draw(text);
+    
+    // Фон прогресс-бара
+    sf::RectangleShape progressBg(sf::Vector2f(progressWidth, 25));
+    progressBg.setFillColor(sf::Color(40, 40, 50));
+    progressBg.setPosition(centerX - progressWidth/2, progressY);
+    window_.draw(progressBg);
+    
+    // Заполнение прогресс-бара
+    sf::RectangleShape progressBar(sf::Vector2f(progressWidth * progress, 25));
+    progressBar.setFillColor(sf::Color(50, 150, 250));
+    progressBar.setPosition(centerX - progressWidth/2, progressY);
+    window_.draw(progressBar);
+    
+    // Рамка прогресс-бара
+    sf::RectangleShape progressFrame(sf::Vector2f(progressWidth, 25));
+    progressFrame.setFillColor(sf::Color::Transparent);
+    progressFrame.setOutlineColor(sf::Color::White);
+    progressFrame.setOutlineThickness(2);
+    progressFrame.setPosition(centerX - progressWidth/2, progressY);
+    window_.draw(progressFrame);
+    
+    // Текст прогресса
+    text.setString(std::to_string(round + 1) + " / 100");
+    text.setCharacterSize(16);
+    text.setFillColor(sf::Color::White);
+    text.setStyle(sf::Text::Bold);
+    bounds = text.getLocalBounds();
+    text.setPosition(centerX - bounds.width / 2, progressY + 3);
+    window_.draw(text);
+    
+    // Инструкция внизу
+    text.setString("Press SPACE or ENTER to continue...");
+    text.setCharacterSize(14);
+    text.setFillColor(sf::Color(150, 150, 150));
+    text.setStyle(sf::Text::Regular);
+    bounds = text.getLocalBounds();
+    text.setPosition(centerX - bounds.width / 2, Height - 40);
+    window_.draw(text);
+    
+    window_.display();
+}
+
 Event GraphicVisual::getEvent(long time_mcsec) {
   sf::Event sfmlEvent;
   
@@ -82,7 +276,7 @@ Event GraphicVisual::getEvent(long time_mcsec) {
             return Event(EventType::RIGHT_1);
 
           default:
-              return Event(); // BAD событие
+            return Event(); // BAD событие
         }
           
       default:
