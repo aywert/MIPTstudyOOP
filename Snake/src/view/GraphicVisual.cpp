@@ -21,6 +21,7 @@ void GraphicVisual::render(Model& model) {
   }
 
   drawBox(model);
+
   for (auto& snake: model.getSnakes()) {
     if (snake.getState() == SnakeStatus::DEAD) {
       clearSnake(snake);
@@ -34,6 +35,8 @@ void GraphicVisual::render(Model& model) {
   for (auto& rabbit: model.getRabbits()) {
     drawRabbit(rabbit);
   }
+
+  drawScorePanel(model);
 
   window_.display();
 };
@@ -298,4 +301,44 @@ void GraphicVisual::drawBox(Model& model) {
   title.setFillColor(sf::Color(200, 150, 50));
   title.setPosition(titleX, titleY);
   window_.draw(title);
+}
+
+void GraphicVisual::drawScorePanel(Model& model) {
+  sf::Text text;
+  text.setFont(font_);
+  
+  // Позиция панели (левый верхний угол)
+  float panelX = 10;
+  float panelY = 10;
+  
+  // Фон панели (ширина автоматическая)
+  sf::RectangleShape panel(sf::Vector2f(200, 30 + model.getSnakes().size() * 25));
+  panel.setFillColor(sf::Color(0, 0, 0, 200));
+  panel.setOutlineColor(sf::Color::White);
+  panel.setOutlineThickness(1);
+  panel.setPosition(panelX, panelY);
+  window_.draw(panel);
+  
+  // Заголовок
+  text.setFont(font_);
+  text.setString("SCORES");
+  text.setCharacterSize(16);
+  text.setPosition(panelX + 10, panelY + 5);
+  text.setFillColor(sf::Color::Yellow);
+  window_.draw(text);
+  
+  // Очки
+  int yOffset = 30;
+  for (const auto& snake : model.getSnakes()) {
+    text.setFillColor(convertToSfmlColor(snake.getColor()));
+    text.setCharacterSize(14);
+    
+    std::string scoreText = "Snake " + std::to_string(snake.getID()) + 
+                            ": " + std::to_string(snake.getLength());
+    text.setString(scoreText);
+    text.setPosition(panelX + 10, panelY + yOffset);
+    window_.draw(text);
+    
+    yOffset += 25;
+  }
 }

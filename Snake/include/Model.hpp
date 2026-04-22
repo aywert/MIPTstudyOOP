@@ -511,7 +511,7 @@ Direction easy_bot_calcul_direction(const Snake& bot) {
     };
 
     std::vector<MoveOption> options = {
-      {Direction::UP,    0, -1}, // Зависит от вашей системы координат (обычно Y- это вверх)
+      {Direction::UP,    0, -1},
       {Direction::DOWN,  0,  1},
       {Direction::LEFT, -1,  0},
       {Direction::RIGHT, 1,  0}
@@ -525,22 +525,17 @@ Direction easy_bot_calcul_direction(const Snake& bot) {
       int nextX = head.x + option.dx;
       int nextY = head.y + option.dy;
 
-      // Проверка границ поля
-      if (nextX >= 0 && nextX < width && nextY >= 0 && nextY < height) {
-        // Если эта клетка лучше всех предыдущих
-        if (isPositionSafe(nextX, nextY)) {
-          if (heatmap[nextX][nextY] > maxScore) {
-            maxScore = heatmap[nextX][nextY];
-            bestDirection = option.dir;
-          }
+      if (isPositionSafe(nextX, nextY)) {
+        if (heatmap[nextX][nextY] > maxScore) {
+          maxScore = heatmap[nextX][nextY];
+          bestDirection = option.dir;
         }
       }
+      
     }
 
     return bestDirection;
   }
-
-
 };
 
 

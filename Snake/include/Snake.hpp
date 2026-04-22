@@ -141,6 +141,7 @@ class Snake {
     SnakeStatus       getState() const noexcept {return state_;}
     int                  getID() const noexcept {return id_;}
     int               getColor() const noexcept {return color_;}
+    int              getLength() const noexcept {return body_.size();}
     bool   isControlledByHuman() const noexcept {return cntrl_ == Controlled_By::human;}
     bool     isControlledByBot() const noexcept {return cntrl_ == Controlled_By::bot;}
     Direction     getDirection() const noexcept {return direction_;}

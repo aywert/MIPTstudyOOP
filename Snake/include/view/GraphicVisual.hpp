@@ -42,5 +42,6 @@ class GraphicVisual: public View {
     Event getEvent(long time_mcsec) override;
 
     void handleResize(unsigned int newWidth, unsigned int newHeight);
+    void drawScorePanel(Model& model);
     GraphicVisual(Model& model);
 };
