@@ -92,22 +92,32 @@ class Model {
 
     bool over() { return status_ == MODEL_STATE::GAME_OVER;}
     void update(const std::vector<Event>& events) {
+      std::optional<Direction> new_direction_1;
+      std::optional<Direction> new_direction_2;
+
       for (const auto& event : events) {
         switch(event.type_) {
+          case EventType::UP_1:    new_direction_1 = Direction::UP;    break;
+          case EventType::DOWN_1:  new_direction_1 = Direction::DOWN;  break;
+          case EventType::LEFT_1:  new_direction_1 = Direction::LEFT;  break;
+          case EventType::RIGHT_1: new_direction_1 = Direction::RIGHT; break;
 
-          case EventType::UP_1:    updateSnakeDirection(0, Direction::UP);    break;
-          case EventType::DOWN_1:  updateSnakeDirection(0, Direction::DOWN);  break;
-          case EventType::LEFT_1:  updateSnakeDirection(0, Direction::LEFT);  break;
-          case EventType::RIGHT_1: updateSnakeDirection(0, Direction::RIGHT); break;
-
-          // Управление вторым игроком (индекс 1)
-          case EventType::UP_2:    updateSnakeDirection(1, Direction::UP);    break;
-          case EventType::DOWN_2:  updateSnakeDirection(1, Direction::DOWN);  break;
-          case EventType::LEFT_2:  updateSnakeDirection(1, Direction::LEFT);  break;
-          case EventType::RIGHT_2: updateSnakeDirection(1, Direction::RIGHT); break;
+          case EventType::UP_2:    new_direction_2 = Direction::UP;    break;
+          case EventType::DOWN_2:  new_direction_2 = Direction::DOWN;  break;
+          case EventType::LEFT_2:  new_direction_2 = Direction::LEFT;  break;
+          case EventType::RIGHT_2: new_direction_2 = Direction::RIGHT; break;
 
           case EventType::HALT: status_ = MODEL_STATE::GAME_OVER; break;
+          default: break;
         }
+      }
+
+      // Применяем только последнее направление для каждого игрока
+      if (new_direction_1.has_value()) {
+        updateSnakeDirection(0, new_direction_1.value());
+      }
+      if (new_direction_2.has_value()) {
+        updateSnakeDirection(1, new_direction_2.value());
       }
 
       botMovementHandle();
