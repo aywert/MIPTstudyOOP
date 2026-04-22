@@ -162,14 +162,14 @@ void GraphicVisual::clearSnake(const Snake& snake) {
 }
 
 sf::Color GraphicVisual::convertToSfmlColor(int colorId) {
-  // Соответствие вашим ID цветов (32, 33, 34, 36 и т.д.)
+  // Соответствие ID цветов (32, 33, 34, 36 и т.д.)
   switch(colorId) {
     case 32: return sf::Color(255, 100, 50);   // Оранжевый
     case 33: return sf::Color(50, 255, 100);   // Зеленый
     case 34: return sf::Color(100, 50, 255);   // Синий
     case 35: return sf::Color(255, 255, 50);   // Желтый
     case 36: return sf::Color(255, 50, 255);   // Пурпурный
-    // Добавьте другие цвета по необходимости
+    
     default: return sf::Color::White;          // Цвет по умолчанию
   }
 }

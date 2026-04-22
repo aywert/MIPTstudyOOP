@@ -37,8 +37,8 @@ struct Point {
 };
 
 
-constexpr long long SPAWN_INTERVAL = 1000;
-constexpr int       MAX_RABBITS    =   10;
+constexpr long long SPAWN_INTERVAL =  500;
+constexpr int       MAX_RABBITS    =   20;
 constexpr int       SHIFT_COL      =    2;
 constexpr int       SHIFT_ROW      =    2;
 
@@ -479,7 +479,7 @@ Direction easy_bot_calcul_direction(const Snake& bot) {
           // Считаем Манхэттенское расстояние
           int dist = std::abs(x - rabbit.getX()) + std::abs(y - rabbit.getY());
           
-          heatmap[x][y] += 100.0 / (dist + 1.0);
+          heatmap[x][y] += 300.0 / (dist + 1.0);
           
         }
       }

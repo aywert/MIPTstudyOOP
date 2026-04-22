@@ -36,7 +36,7 @@ class Controller {
     }
 
 
-  void setSnakes(int num_of_silly_bots, int num_of_smart_bots, int num_of_human) {
+  void setSnakes(int num_of_silly_bots = 1, int num_of_smart_bots = 1, int num_of_human = 2) {
     
     if (num_of_human > 2) {
       std::cerr << "\033[31mGame only supports up to 2 players...\033[0m\n";
