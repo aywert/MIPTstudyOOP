@@ -22,7 +22,8 @@ enum class SnakeStatus {
 
 enum class Controlled_By {
   human,
-  bot, 
+  smart_bot, 
+  silly_bot,
 };
 
 struct Segment {
@@ -53,7 +54,7 @@ class Snake {
       cntrl_(cntrl), body_(body), direction_(direction), color_(color) {}
 
     struct Builder {
-      Controlled_By      cntrl_{Controlled_By::bot};
+      Controlled_By      cntrl_{Controlled_By::silly_bot};
       SnakeStatus        state_{SnakeStatus::ALIVE};
       std::list<Segment>  body_{};
       Direction      direction_{Direction::RIGHT};
@@ -66,10 +67,9 @@ class Snake {
       }
 
       Builder& setBody(const Segment& seg) {
-        Segment offset = {-1, 0};
         body_.emplace_back(seg.x, seg.y, SegmentType::HEAD); 
-        body_.emplace_back(seg + offset);        
-        body_.emplace_back(seg + offset + offset);
+        body_.emplace_back(seg);        
+        body_.emplace_back(seg);
         return *this;
       }
 
@@ -82,7 +82,7 @@ class Snake {
         return *this;
       }
 
-      Builder& setHumanControlled(const Controlled_By& cntrl) {
+      Builder& setControlledBy(const Controlled_By& cntrl) {
         cntrl_ = cntrl;
         return *this;
       }
@@ -143,7 +143,8 @@ class Snake {
     int               getColor() const noexcept {return color_;}
     int              getLength() const noexcept {return body_.size();}
     bool   isControlledByHuman() const noexcept {return cntrl_ == Controlled_By::human;}
-    bool     isControlledByBot() const noexcept {return cntrl_ == Controlled_By::bot;}
+    bool     isControlledByBot() const noexcept {return cntrl_ != Controlled_By::human;}
+    Controlled_By   getCntrlBy() const noexcept {return cntrl_;}
     Direction     getDirection() const noexcept {return direction_;}
 
     void setDirection(Direction dir) noexcept {direction_ = dir;}

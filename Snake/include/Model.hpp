@@ -12,6 +12,7 @@ enum class MODEL_STATE {
   NOT_LAUNCHED,
   IN_PROCCESS,
   GAME_OVER,
+  TOURNAMENT,
   ERROR,
 };
 
@@ -336,13 +337,16 @@ class Model {
 
 
 void botMovementHandle() {
-  for (auto& bot : snakes_) {
-    if (bot.isControlledByHuman()) continue;
+  for (auto& snake : snakes_) {
+    if (snake.isControlledByHuman()) continue;
 
-    //Direction nextDir = easy_bot_calcul_direction(bot);
-    Direction nextDir = smart_bot_calcul_direction(bot);
+    Direction nextDir = snake.getDirection();
+    if (snake.getCntrlBy() == Controlled_By::smart_bot)
+      nextDir = smart_bot_calcul_direction(snake);
+    else 
+      nextDir = easy_bot_calcul_direction(snake);
 
-    bot.setDirection(nextDir);
+    snake.setDirection(nextDir);
   }
 }
 
@@ -547,5 +551,3 @@ Direction easy_bot_calcul_direction(const Snake& bot) {
     return bestDirection;
   }
 };
-
-

@@ -14,7 +14,7 @@ int main() {
       GraphicVisual tv(model);  
     
     Controller ctrl(model, tv);
-    ctrl.run();
+    ctrl.run(1, 2, 2);
 
     } catch (const std::runtime_error& e) {
     std::cerr << "Runtime error: " << e.what() << std::endl;

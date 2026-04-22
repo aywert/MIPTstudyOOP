@@ -10,35 +10,8 @@ class Controller {
   public: 
     Controller(Model& model, View& view) : model_(model), view_(view) {}
     
-    void run() {
-      Snake snake_1 = Snake::Builder()
-        .setHumanControlled(Controlled_By::human)
-        .setColor(32)
-        .setBody(Segment(10, 10, SegmentType::BODY))
-        .build();
-
-      Snake snake_2 = Snake::Builder()
-        .setHumanControlled(Controlled_By::human)
-        .setColor(34)
-        .setBody(Segment(10, 15, SegmentType::BODY))
-        .build();
-
-      Snake bot_1 = Snake::Builder()
-        .setHumanControlled(Controlled_By::bot)
-        .setColor(33)
-        .setBody(Segment(10, 20, SegmentType::BODY))
-        .build();
-
-      Snake bot_2 = Snake::Builder()
-        .setHumanControlled(Controlled_By::bot)
-        .setColor(36)
-        .setBody(Segment(30, 20, SegmentType::BODY))
-        .build();
-      
-      model_.addSnake(snake_1);
-      model_.addSnake(snake_2);
-      model_.addSnake(bot_1);
-      model_.addSnake(bot_2);
+    void run(int num_of_silly_bots, int num_of_smart_bots, int num_of_human) {
+      setSnakes(num_of_silly_bots, num_of_smart_bots, num_of_human);
 
       while (!model_.over()) 
       { 
@@ -53,12 +26,105 @@ class Controller {
             events.push_back(event);
           
           elapsed = 
-          std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count();
+          std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - start_time).count();
         }
 
         model_.update(events);
         view_.render(model_);
       }
     }
-};
 
+
+  void setSnakes(int num_of_silly_bots, int num_of_smart_bots, int num_of_human) {
+    
+    if (num_of_human > 2) {
+      std::cerr << "\033[31mGame only supports up to 2 players...\033[0m\n";
+      num_of_human = 2;
+    }
+      
+    int min_x = SHIFT_COL + 1;
+    int max_x = model_.getWidth() - SHIFT_COL;
+    int min_y = SHIFT_ROW + 1;
+    int max_y = model_.getHeight() - SHIFT_ROW;
+
+    std::vector<int> colors = {32, 34, 33, 36, 35};
+
+    static std::mt19937 gen(
+      static_cast<unsigned int>(
+        std::chrono::steady_clock::now().time_since_epoch().count()
+      )
+    );
+
+    auto generateUniqueHeadPosition = [&]() -> std::optional<Segment> {
+      for (int attempt = 0; attempt < 200; ++attempt) {
+        std::uniform_int_distribution<int> distribX(min_x, max_x);
+        std::uniform_int_distribution<int> distribY(min_y, max_y);
+        
+        int x = distribX(gen);
+        int y = distribY(gen);
+        
+        // Проверяем, свободна ли позиция (не занята другими змеями)
+        if (model_.isPositionFree(x, y)) {
+          return Segment(x, y, SegmentType::HEAD);
+        }
+      }
+      return std::nullopt;
+    };
+
+    std::vector<Segment> human_start_positions = {
+      Segment(model_.getWidth()/4,   model_.getHeight()*3/4, SegmentType::HEAD),  // Первый игрок
+      Segment(model_.getWidth()*3/4, model_.getHeight()*3/4, SegmentType::HEAD)  // Второй игрок (правый верхний угол)
+    };
+
+    for (int i = 0; i < num_of_human; ++i) {
+      Segment head_pos = human_start_positions[i];
+      
+      Snake snake = Snake::Builder()
+        .setControlledBy(Controlled_By::human)
+        .setDirection(Direction::UP)
+        .setColor(colors[i])
+        .setBody(head_pos)
+        .build();
+      
+      model_.addSnake(snake);
+      
+    }
+
+    for (int i = 0; i < num_of_silly_bots; ++i) {
+      auto head_pos = generateUniqueHeadPosition();
+      
+      if (head_pos.has_value()) {
+
+        Snake snake = Snake::Builder()
+          .setControlledBy(Controlled_By::silly_bot)
+          .setColor(colors[2])
+          .setBody(head_pos.value())
+          .build();
+        
+        model_.addSnake(snake);
+      } else {
+        std::cerr << "Warning: Could not spawn silly bots" << i << std::endl;
+      }
+    }
+
+    for (int i = 0; i < num_of_smart_bots; ++i) {
+      auto head_pos = generateUniqueHeadPosition();
+      
+      if (head_pos.has_value()) {
+
+        Snake snake = Snake::Builder()
+          .setControlledBy(Controlled_By::smart_bot)
+          .setColor(colors[3])
+          .setBody(head_pos.value())
+          .build();
+        
+        model_.addSnake(snake);
+      } else {
+        std::cerr << "Warning: Could not spawn smart bots" << i << std::endl;
+      }
+    }
+
+
+  }
+};
