@@ -53,13 +53,15 @@ class Controller {
 
           Event event = view_.flushEvents();//flashing events in order to empty sfml buffer
           if (event.type_ == EventType::HALT) return;
-          
+
           std::vector<Event> events;
           model_.update(events);
           view_.render(model_);
         }
 
+        usleep(50000);
         view_.showFeatures(i, smart_wins, silly_wins);
+
         model_.refresh();
         usleep(2000000);
       }

@@ -7,8 +7,8 @@ class View {
 
   public:
     virtual Event getEvent(long time_mcsec) = 0;
-    virtual Event flushEvents()  {return Event();};
-    virtual void showFeatures(int n, int a, int b) {};
+    virtual Event flushEvents() = 0;
+    virtual void showFeatures(int n, int a, int b) = 0;
     virtual void clearScreen() = 0;
     virtual void render(Model& model) = 0;
     virtual void drawRabbit(const Rabbit& rabbit) = 0;

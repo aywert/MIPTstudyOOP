@@ -1,6 +1,7 @@
 #include <SFML/Graphics.hpp>
 #include <getopt.h>
 #include <unistd.h>
+#include <cstring>
 #include "Model.hpp"
 #include "TextVisual.hpp"
 #include "GraphicVisual.hpp"
@@ -14,7 +15,7 @@ int main(int argc, char* argv[]) {
   int num_silly_bots = 1;
 
   MODEL_STATE state = MODEL_STATE::NOT_LAUNCHED;
-  
+  bool view_is_graphic = false;
   // Опции для getopt_long
   static struct option long_options[] = {
     {"human",   required_argument, 0, 'u'},
@@ -22,6 +23,7 @@ int main(int argc, char* argv[]) {
     {"silly",   required_argument, 0, 'l'},
     {"all",     required_argument, 0, 'a'},
     {"tour",    no_argument,       0, 't'},
+    {"gview",    no_argument,      0,  0 },
     {0, 0, 0, 0}
   };
   
@@ -29,6 +31,13 @@ int main(int argc, char* argv[]) {
   int option_index = 0;
   
   while ((opt = getopt_long(argc, argv, "hu:s:l:a:t", long_options, &option_index)) != -1) {
+    if (opt == 0) {
+      const char* name = long_options[option_index].name;
+      if (strcmp(name, "gview") == 0) {
+        view_is_graphic = true;
+      }
+    }
+    else 
     switch (opt) {
       case 'u':
         num_human = std::atoi(optarg);
@@ -69,14 +78,27 @@ int main(int argc, char* argv[]) {
   Model model(30, 30, 120);
 
   try {
-    GraphicVisual tv(model);  
-  
-  Controller ctrl(model, tv);
+    if (view_is_graphic) {
+      //graphic view
+      GraphicVisual tv(model);  
+      Controller ctrl(model, tv);
+      
+      if (state == MODEL_STATE::TOURNAMENT)
+        ctrl.run();
+      else 
+        ctrl.run(num_silly_bots, num_smart_bots, num_human);
+    } 
 
-  if (state == MODEL_STATE::TOURNAMENT)
-    ctrl.run();
-  else 
-    ctrl.run(num_silly_bots, num_smart_bots, num_human);
+    else {
+      //text view
+      TextVisual tv(model);  
+      Controller ctrl(model, tv);
+      
+      if (state == MODEL_STATE::TOURNAMENT)
+        ctrl.run();
+      else 
+        ctrl.run(num_silly_bots, num_smart_bots, num_human);
+    }
 
   } catch (const std::runtime_error& e) {
     std::cerr << "Runtime error: " << e.what() << std::endl;

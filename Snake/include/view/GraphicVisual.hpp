@@ -21,7 +21,7 @@ class GraphicVisual: public View {
   sf::Color convertToSfmlColor(int colorId);
 
   public: 
-    void clearScreen() override {}
+    void clearScreen() override {window_.clear(sf::Color(0, 0, 0));}
     void setColor(int color) override{};
     void render(Model& model) override;
 
