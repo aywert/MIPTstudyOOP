@@ -7,7 +7,7 @@ class View {
 
   public:
     virtual Event getEvent(long time_mcsec) = 0;
-    virtual void flashEvents()  {};
+    virtual Event flushEvents()  {return Event();};
     virtual void showFeatures(int n, int a, int b) {};
     virtual void clearScreen() = 0;
     virtual void render(Model& model) = 0;

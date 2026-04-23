@@ -12,6 +12,8 @@ int main(int argc, char* argv[]) {
   int num_human      = 1;
   int num_smart_bots = 1;
   int num_silly_bots = 1;
+
+  MODEL_STATE state = MODEL_STATE::NOT_LAUNCHED;
   
   // Опции для getopt_long
   static struct option long_options[] = {
@@ -19,19 +21,20 @@ int main(int argc, char* argv[]) {
     {"smart",   required_argument, 0, 's'},
     {"silly",   required_argument, 0, 'l'},
     {"all",     required_argument, 0, 'a'},
+    {"tour",    no_argument,       0, 't'},
     {0, 0, 0, 0}
   };
   
   int opt;
   int option_index = 0;
   
-  while ((opt = getopt_long(argc, argv, "hu:s:l:a:", long_options, &option_index)) != -1) {
+  while ((opt = getopt_long(argc, argv, "hu:s:l:a:t", long_options, &option_index)) != -1) {
     switch (opt) {
       case 'u':
         num_human = std::atoi(optarg);
         if (num_human > 2) {
-            std::cerr << "\033[31mWarning: Maximum 2 human players\033[0m\n";
-            num_human = 2;
+          std::cerr << "\033[31mWarning: Maximum 2 human players\033[0m\n";
+          num_human = 2;
         }
         break;
       case 's':
@@ -42,7 +45,6 @@ int main(int argc, char* argv[]) {
         break;
       case 'a': {
         std::string all_args = optarg;
-        std::cout << all_args.c_str() << "\n";
         if (std::sscanf(all_args.c_str(), "%d %d %d", &num_human, &num_smart_bots, &num_silly_bots) != 3) {
           std::cerr << "\033[31mError: Invalid format for -a. Expected: \"human smart silly\"\033[0m\n";
           return 1;
@@ -50,8 +52,13 @@ int main(int argc, char* argv[]) {
         break;
       }
 
+      case 't': {
+        state = MODEL_STATE::TOURNAMENT;
+        break;
+      }
+
       default: {
-        std::cerr << "unknown flag";
+        std::cerr << "\033[31munknown flag\033[0m\n";
         return 1;
       }
     }
@@ -65,8 +72,11 @@ int main(int argc, char* argv[]) {
     GraphicVisual tv(model);  
   
   Controller ctrl(model, tv);
-  ctrl.run();
-  //ctrl.run(num_silly_bots, num_smart_bots, num_human);
+
+  if (state == MODEL_STATE::TOURNAMENT)
+    ctrl.run();
+  else 
+    ctrl.run(num_silly_bots, num_smart_bots, num_human);
 
   } catch (const std::runtime_error& e) {
     std::cerr << "Runtime error: " << e.what() << std::endl;

@@ -38,7 +38,7 @@ class GraphicVisual: public View {
     void showCursor() {};
 
     Event getEvent(long time_mcsec) override;
-    void flashEvents()  override;
+    Event flushEvents()  override;
     void showFeatures(int round, int smart_wins, int silly_wins) override;
 
     void handleResize(unsigned int newWidth, unsigned int newHeight);

@@ -45,23 +45,23 @@ class Controller {
         model_.setSpawnInterval(30);
 
         while (!model_.over()) { 
-          usleep(10);
+          usleep(1000);
           if (model_.try_kill()) {
             if      (model_.getLastSnakeType() == Controlled_By::silly_bot) silly_wins++;
             else if (model_.getLastSnakeType() == Controlled_By::smart_bot) smart_wins++;
           }
 
-          view_.flashEvents();//flashing events in order to empty sfml buffer
-
-          std::vector<Event> event;
-          model_.update(event);
-          view_.render(model_);
+          Event event = view_.flushEvents();//flashing events in order to empty sfml buffer
+          if (event.type_ == EventType::HALT) return;
           
+          std::vector<Event> events;
+          model_.update(events);
+          view_.render(model_);
         }
 
         view_.showFeatures(i, smart_wins, silly_wins);
         model_.refresh();
-        usleep(100000);
+        usleep(2000000);
       }
     }
 

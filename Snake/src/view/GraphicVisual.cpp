@@ -49,17 +49,18 @@ GraphicVisual::GraphicVisual(Model& model)
         }
       }
 
-void GraphicVisual::flashEvents() {
+Event GraphicVisual::flushEvents() {
   sf::Event sfmlEvent;
   while (window_.pollEvent(sfmlEvent)) {
     if (sfmlEvent.type == sf::Event::Closed) {
-      return;
+      return Event(EventType::HALT); // shutting down on event window closed
     }
 
     if (sfmlEvent.type == sf::Event::Resized)
       handleResize(sfmlEvent.size.width, sfmlEvent.size.height);
-      return;
   }
+
+  return Event();
 }
 
 void GraphicVisual::showFeatures(int round, int smart_wins, int silly_wins) {
