@@ -8,8 +8,6 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 
-
-
 class GraphicVisual: public View {
 
   int Height;

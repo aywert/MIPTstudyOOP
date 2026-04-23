@@ -42,12 +42,11 @@ class Controller {
 
       for (int i = 0; i < 100; i++) {
         setSnakes(1, 1, 0);
-        model_.setSpawnInterval(50);
+        model_.setSpawnInterval(30);
 
         while (!model_.over()) { 
-          usleep(1000);
+          usleep(10);
           if (model_.try_kill()) {
-            usleep(200000);
             if      (model_.getLastSnakeType() == Controlled_By::silly_bot) silly_wins++;
             else if (model_.getLastSnakeType() == Controlled_By::smart_bot) smart_wins++;
           }
@@ -62,7 +61,7 @@ class Controller {
 
         view_.showFeatures(i, smart_wins, silly_wins);
         model_.refresh();
-        usleep(2000000);
+        usleep(100000);
       }
     }
 

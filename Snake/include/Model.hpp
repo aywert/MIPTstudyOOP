@@ -101,6 +101,12 @@ class Model {
         last_snake_type_ = snakes_.front().getCntrlBy();
         return true;
       }
+
+      if (snakes_.size() == 0) { 
+        status_ = MODEL_STATE::GAME_OVER;
+        last_snake_type_ = Controlled_By::human;
+        return true;
+      }
       
       return false;
     }
@@ -515,27 +521,45 @@ Direction easy_bot_calcul_direction(const Snake& bot) {
           // Считаем Манхэттенское расстояние
           int dist = std::abs(x - rabbit.getX()) + std::abs(y - rabbit.getY());
           
-          heatmap[x][y] += 300.0 / (dist + 1.0);
+          heatmap[x][y] += 500.0 / (dist + 1.0);
           
         }
       }
     }
 
-    for (const auto& enemy: snakes_) {
-      if (&enemy == &snake) continue; 
-      auto head = enemy.getHead();
+    for (const auto& enemy : snakes_) {
+      if (&enemy == &snake) continue;
+      
+      for (const auto& segment : enemy.getBody()) {
+        double penalty = (segment.type == SegmentType::HEAD) ? 150.0 : 80.0;
+        int sx = segment.x;
+        int sy = segment.y;
+        
+        int radius = 15;
+        int min_x = std::max(0, sx - radius);
+        int max_x = std::min(width, sx + radius);
+        int min_y = std::max(0, sy - radius);
+        int max_y = std::min(height, sy + radius);
+        
+        for (int x = min_x; x < max_x; ++x) {
+          for (int y = min_y; y < max_y; ++y) {
+            int dist = std::abs(x - sx) + std::abs(y - sy);
+            heatmap[x][y] -= penalty / (dist + 1.0);
+          }
+        }
+      }
+    }
+
+    for (const auto& segment : snake.getBody()) {
       for (int x = 0; x < width; ++x) {
         for (int y = 0; y < height; ++y) {
-          // Считаем Манхэттенское расстояние
-          int dist = std::abs(x - head.x) + std::abs(y - head.y);
-          
-          heatmap[x][y] -= 150.0 / (dist + 1.0); 
+          int dist = std::abs(x - segment.x) + std::abs(y - segment.y);
+          // Свое тело - сильный штраф
+          heatmap[x][y] -= 80.0 / (dist + 1.0);
         }
       }
     }
 
-
-    // 3. ГРАНИЦЫ (Штраф за близость к стенам)
     for (int x = 0; x < width; ++x) {
       for (int y = 0; y < height; ++y) {
         // Находим минимальное расстояние до любой из 4-х стен
@@ -551,9 +575,7 @@ Direction easy_bot_calcul_direction(const Snake& bot) {
     return heatmap;
   }
 
-  // Пример использования для выбора хода
   Direction chooseBestMoveBasedOnHeatMap(const Snake& snake, int width, int height, const std::vector<std::vector<double>>& heatmap) {
-    // Структура для связи направления и вектора движения
     struct MoveOption {
       Direction dir;
       int dx;
