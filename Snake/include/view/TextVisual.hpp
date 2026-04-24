@@ -123,6 +123,7 @@ class TextVisual: public View {
         drawRabbit(rabbit);
       }
 
+      drawPortal(model);
       drawScorePanel(model);
 
       std::cout << buffer << std::flush;
@@ -146,6 +147,18 @@ class TextVisual: public View {
       gotoxy(rabbit.getX(), rabbit.getY());
       buffer+='@';
     };
+
+    void drawPortal(Model& model) {
+      auto [x1, y1] = model.getFirstPortal();
+      gotoxy(x1, y1);
+      buffer += "\033[35m◉\033[0m";  // Фиолетовый кружок с белой точкой внутри
+      
+      // Рисуем второй портал
+      auto [x2, y2] = model.getSecondPortal();
+      gotoxy(x2, y2);
+      buffer += "\033[35m◉\033[0m";
+    }
+
     void drawSnake(const Snake& snake) override{
       //deleting tail
       Segment tail = snake.getTail();

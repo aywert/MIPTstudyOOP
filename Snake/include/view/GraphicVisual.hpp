@@ -29,6 +29,7 @@ class GraphicVisual: public View {
     void drawRabbit(const Rabbit& rabbit) override;
     void drawSnake(const Snake& snake)    override;
     void drawSpace(Snake& snake) override{};
+    void drawPortal(Model& model);
 
     void clearPosition(int x, int y);
     void clearSnake(const Snake& snake);

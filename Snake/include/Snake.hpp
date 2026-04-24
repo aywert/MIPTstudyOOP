@@ -139,6 +139,8 @@ class Snake {
     std::list<Segment> getBody() const noexcept {return body_;}
     Segment            getHead() const noexcept {return body_.front();}
     SnakeStatus       getState() const noexcept {return state_;}
+    int               getHeadX() const noexcept {return body_.front().x;}
+    int               getHeadY() const noexcept {return body_.front().y;}
     int                  getID() const noexcept {return id_;}
     int               getColor() const noexcept {return color_;}
     int              getLength() const noexcept {return body_.size();}
@@ -147,6 +149,10 @@ class Snake {
     Controlled_By   getCntrlBy() const noexcept {return cntrl_;}
     Direction     getDirection() const noexcept {return direction_;}
 
+    void setHeadPosition(int x, int y) {
+      body_.front().x = x;
+      body_.front().y = y;
+    }
     void setDirection(Direction dir) noexcept {direction_ = dir;}
     void setID(size_t id) noexcept {id_ = id;}
 };

@@ -45,7 +45,7 @@ class Controller {
         model_.setSpawnInterval(30);
 
         while (!model_.over()) { 
-          usleep(1000);
+          usleep(500);
           if (model_.try_kill()) {
             if      (model_.getLastSnakeType() == Controlled_By::silly_bot) silly_wins++;
             else if (model_.getLastSnakeType() == Controlled_By::smart_bot) smart_wins++;

@@ -36,6 +36,8 @@ void GraphicVisual::render(Model& model) {
     drawRabbit(rabbit);
   }
 
+  drawPortal(model);
+
   drawScorePanel(model);
 
   window_.display();
@@ -337,6 +339,37 @@ void GraphicVisual::drawRabbit(const Rabbit& rabbit) {
   square.setFillColor(sf::Color(200, 40, 30));
   square.setPosition(rabbit.getX() * block_size, rabbit.getY() * block_size);
   window_.draw(square);
+}
+
+void GraphicVisual::drawPortal(Model& model) {
+  // Функция для рисования одного портала
+  auto drawSinglePortal = [this](int x, int y) {
+    // Темно-фиолетовый фон
+    sf::RectangleShape portalSquare(sf::Vector2f(block_size, block_size));
+    portalSquare.setFillColor(sf::Color(75, 0, 130));
+    portalSquare.setPosition(x * block_size, y * block_size);
+    window_.draw(portalSquare);
+    
+    // Рисуем спираль тонкой линией
+    float centerX = x * block_size + block_size / 2.0f;
+    float centerY = y * block_size + block_size / 2.0f;
+    
+    sf::VertexArray spiral(sf::LineStrip);
+    for (double t = 0; t < 4 * M_PI; t += 0.05) {
+      double radius = (t / (4 * M_PI)) * (block_size / 2.5);
+      float px = centerX + radius * cos(t);
+      float py = centerY + radius * sin(t);
+      spiral.append(sf::Vertex(sf::Vector2f(px, py), sf::Color::White));
+    }
+    window_.draw(spiral);
+  };
+  
+  // Рисуем оба портала
+  auto [x1, y1] = model.getFirstPortal();
+  drawSinglePortal(x1, y1);
+  
+  auto [x2, y2] = model.getSecondPortal();
+  drawSinglePortal(x2, y2);
 }
 
 void GraphicVisual::clearPosition(int x, int y) {

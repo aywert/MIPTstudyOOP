@@ -7,6 +7,7 @@
 #include <chrono>
 #include "Snake.hpp"
 #include "Rabbit.hpp"
+#include "Portal.hpp"
 
 enum class MODEL_STATE {
   NOT_LAUNCHED,
@@ -66,6 +67,7 @@ class Model {
   std::list<Snake>  snakes_;
   std::vector<int>  human_snakes_ids_; // vector which contains IDs of Snakes controlled by human (up to 2 people)
   int next_snake_id_ = 0; // Счётчик для генерации уникальных ID змей
+  std::pair<Portal, Portal> portals_;
 
   using time_t = std::chrono::steady_clock::time_point;
   class Clock {
@@ -89,7 +91,9 @@ class Model {
       status_(MODEL_STATE::IN_PROCCESS),
       window_width_(window_width), 
       window_height_(window_height), 
-      tick_(tick){}
+      tick_(tick){
+        spawnPortal();
+      }
 
     MODEL_STATE getStatus() { return status_; };
 
@@ -129,7 +133,7 @@ class Model {
 
     bool over()  { return status_ == MODEL_STATE::GAME_OVER;}
     void refresh() {
-      SPAWN_INTERVAL =  500;
+      SPAWN_INTERVAL =  600;
       MAX_RABBITS    =   20;
       SHIFT_COL      =    2;
       SHIFT_ROW      =    2;
@@ -185,8 +189,11 @@ class Model {
             it->move();
             if (checkBoundaryCollision(*it) || checkSnakeCollisions(*it)) {
               it->kill(); ++it;
-            } else { handleRabbitCollision(*it); ++it;}  // Переходим к следующему элементу
-
+            } else { 
+              handleRabbitCollision(*it); 
+              handlePortalCollisions(*it);
+              ++it; // Переходим к следующему элементу
+            }  
             break;
           }
         }
@@ -209,6 +216,14 @@ class Model {
     void setSpawnInterval(long long time) {
       SPAWN_INTERVAL =  time;
     }    
+
+    std::pair<int, int> getFirstPortal() {
+      return std::pair(portals_.first.getX(), portals_.first.getY());
+    }
+
+     std::pair<int, int> getSecondPortal() {
+      return std::pair(portals_.second.getX(), portals_.second.getY());
+    }
 
     size_t getTicks() const noexcept {return tick_;}
     int    getWidth() const noexcept {return window_width_;}
@@ -281,6 +296,51 @@ class Model {
       }
     }
 
+    void spawnPortal() {
+      static std::mt19937 gen(
+        static_cast<unsigned int>(
+          std::chrono::steady_clock::now().time_since_epoch().count()
+        )
+      );
+      
+      int min_x = shift_col + 1;
+      int max_x = window_width_ - shift_col;
+      int min_y = shift_row + 1;
+      int max_y = window_height_ - shift_row;
+
+      std::vector<Portal> ports;
+      
+      for (int attempt = 0; attempt < 100; ++attempt) {
+        std::uniform_int_distribution<int> distribX(min_x, max_x);
+        std::uniform_int_distribution<int> distribY(min_y, max_y);
+        
+        int x = distribX(gen);
+        int y = distribY(gen);
+        
+        if (isPositionFree(x, y)) {
+          Portal prt_1(x, y);
+          ports.push_back(prt_1);
+          break;
+        }
+      }
+
+      for (int attempt = 0; attempt < 100; ++attempt) {
+        std::uniform_int_distribution<int> distribX(min_x, max_x);
+        std::uniform_int_distribution<int> distribY(min_y, max_y);
+        
+        int x = distribX(gen);
+        int y = distribY(gen);
+        
+        if (isPositionFree(x, y)) {
+          Portal prt_1(x, y);
+          ports.push_back(prt_1);
+          break;
+        }
+      }
+
+      portals_ = std::pair(ports[0], ports[1]);
+    }
+
     bool checkBoundaryCollision(const Snake& snake) {
     const auto& head = snake.getHead();
     
@@ -336,6 +396,23 @@ class Model {
       }
     }
   }
+
+  void handlePortalCollisions(Snake& snake) {
+    // Get snake head position
+    int headX = snake.getHeadX(); 
+    int headY = snake.getHeadY();
+    
+    // Check if head collides with first portal
+    if (headX == portals_.first.getX() && headY == portals_.first.getY()) {
+      // Teleport to second portal position
+      snake.setHeadPosition(portals_.second.getX(), portals_.second.getY());
+    }
+    // Check if head collides with second portal
+    else if (headX == portals_.second.getX() && headY == portals_.second.getY()) {
+      // Teleport to first portal position
+      snake.setHeadPosition(portals_.first.getX(), portals_.first.getY());
+    }
+  }
   
   bool isPositionFree(int x, int y) const {
     
@@ -364,6 +441,14 @@ class Model {
     for (const auto& rabbit : rabbits_) {
       if (x == rabbit.getX() && y == rabbit.getY()) 
         return false;
+    }
+
+    if (x == portals_.first.getX() && y == portals_.first.getY()) {
+      return false;
+    }
+
+    if (x == portals_.second.getX() && y == portals_.second.getY()) {
+      return false;
     }
 
     return true;
