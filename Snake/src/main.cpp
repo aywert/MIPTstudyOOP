@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
 
   std::signal(SIGWINCH, handle_winch);
     
-  Model model(30, 30, 120);
+  Model model(50, 40, 120);
 
   try {
     if (view_is_graphic) {

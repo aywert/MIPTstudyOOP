@@ -95,14 +95,30 @@ class Model {
 
     Clock RabbitTimer;
     bool try_kill() {
-      // Подсчитываем только живых змей
-      if (snakes_.size() == 1) { 
+      if (snakes_.size() == 2) {
+        auto it = snakes_.begin();
+        if (it->getLength() >= 50) {
+          status_ = MODEL_STATE::GAME_OVER;
+          last_snake_type_ = it->getCntrlBy();
+          return true;
+        } 
+        else {
+          it++;
+          if (it->getLength() >= 50) {
+            status_ = MODEL_STATE::GAME_OVER;
+            last_snake_type_ = it->getCntrlBy();
+            return true;
+          }
+        }
+      } 
+
+      else if (snakes_.size() == 1) { 
         status_ = MODEL_STATE::GAME_OVER;
         last_snake_type_ = snakes_.front().getCntrlBy();
         return true;
       }
 
-      if (snakes_.size() == 0) { 
+      else if (snakes_.size() == 0) { 
         status_ = MODEL_STATE::GAME_OVER;
         last_snake_type_ = Controlled_By::human;
         return true;
@@ -519,7 +535,7 @@ Direction easy_bot_calcul_direction(const Snake& bot) {
       for (int x = 0; x < width; ++x) {
         for (int y = 0; y < height; ++y) {
           // Считаем Манхэттенское расстояние
-          int dist = std::abs(x - rabbit.getX()) + std::abs(y - rabbit.getY());
+          double dist = std::sqrt(std::pow(x - rabbit.getX(), 2) + std::pow(y - rabbit.getY(), 2));
           
           heatmap[x][y] += 500.0 / (dist + 1.0);
           
@@ -531,7 +547,7 @@ Direction easy_bot_calcul_direction(const Snake& bot) {
       if (&enemy == &snake) continue;
       
       for (const auto& segment : enemy.getBody()) {
-        double penalty = (segment.type == SegmentType::HEAD) ? 150.0 : 80.0;
+        double penalty = (segment.type == SegmentType::HEAD) ? 100.0 : 50.0;
         int sx = segment.x;
         int sy = segment.y;
         
@@ -543,7 +559,7 @@ Direction easy_bot_calcul_direction(const Snake& bot) {
         
         for (int x = min_x; x < max_x; ++x) {
           for (int y = min_y; y < max_y; ++y) {
-            int dist = std::abs(x - sx) + std::abs(y - sy);
+            double dist = std::sqrt(std::pow(x - sx, 2) + std::pow(y - sy, 2));
             heatmap[x][y] -= penalty / (dist + 1.0);
           }
         }
@@ -553,9 +569,9 @@ Direction easy_bot_calcul_direction(const Snake& bot) {
     for (const auto& segment : snake.getBody()) {
       for (int x = 0; x < width; ++x) {
         for (int y = 0; y < height; ++y) {
-          int dist = std::abs(x - segment.x) + std::abs(y - segment.y);
+          double dist = std::sqrt(std::pow(x - segment.x, 2) + std::pow(y - segment.y, 2));
           // Свое тело - сильный штраф
-          heatmap[x][y] -= 80.0 / (dist + 1.0);
+          heatmap[x][y] -= 50.0 / (dist + 1.0);
         }
       }
     }
@@ -568,7 +584,7 @@ Direction easy_bot_calcul_direction(const Snake& bot) {
         int minDistToEdge = std::min(distToEdgeX, distToEdgeY);
 
         if (minDistToEdge < 3) { 
-          heatmap[x][y] -= 50.0 / (minDistToEdge + 1.0);
+          heatmap[x][y] -= 30.0 / (minDistToEdge + 1.0);
         }
       }
     }

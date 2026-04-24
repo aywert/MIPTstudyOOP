@@ -59,7 +59,7 @@ class Controller {
           view_.render(model_);
         }
 
-        usleep(50000);
+       // usleep(200000);
         view_.showFeatures(i, smart_wins, silly_wins);
 
         model_.refresh();
