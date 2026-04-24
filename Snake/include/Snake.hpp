@@ -97,43 +97,11 @@ class Snake {
       }
     };
 
-  void move() {
-    if (body_.empty()) return;
-    
-    Segment newHead = body_.front();
-    newHead.type       = SegmentType::HEAD; 
-    body_.front().type = SegmentType::BODY; 
+    void move();
 
-    switch (direction_) {
-      case Direction::UP:    newHead.y--; break;
-      case Direction::DOWN:  newHead.y++; break;
-      case Direction::LEFT:  newHead.x--; break;
-      case Direction::RIGHT: newHead.x++; break;
-    }
-
-    body_.push_front(newHead);
-
-    if (should_grow_) {
-      should_grow_ = false;
-      // При росте не удаляем хвост, но и не обновляем rudimentary_tail_
-      // Просто оставляем старый rudimentary_tail_
-    } else {
-      rudimentary_tail_ = body_.back();
-      body_.pop_back();
-    }
-}
-
-    void grow() {
-      should_grow_ = true;
-    }
-
-    void kill() {
-      state_ = SnakeStatus::DEAD;
-    }
-
-    void rot() {
-      state_ = SnakeStatus::ROTTED;
-    }
+    void grow() {should_grow_ = true;}
+    void kill() {state_ = SnakeStatus::DEAD;}
+    void rot() {state_ = SnakeStatus::ROTTED;}
 
     Segment            getTail() const noexcept {return rudimentary_tail_;}
     std::list<Segment> getBody() const noexcept {return body_;}
