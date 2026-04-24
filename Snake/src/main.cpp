@@ -23,14 +23,14 @@ int main(int argc, char* argv[]) {
     {"silly",   required_argument, 0, 'l'},
     {"all",     required_argument, 0, 'a'},
     {"tour",    no_argument,       0, 't'},
-    {"gview",    no_argument,      0,  0 },
+    {"gview",   no_argument,       0,  0 },
     {0, 0, 0, 0}
   };
   
   int opt;
   int option_index = 0;
   
-  while ((opt = getopt_long(argc, argv, "hu:s:l:a:t", long_options, &option_index)) != -1) {
+  while ((opt = getopt_long(argc, argv, "u:s:l:a:t", long_options, &option_index)) != -1) {
     if (opt == 0) {
       const char* name = long_options[option_index].name;
       if (strcmp(name, "gview") == 0) {
