@@ -283,12 +283,16 @@ void Model::handlePortalCollisions(Snake& snake) {
   if (headX == portals_.first.getX() && headY == portals_.first.getY()) {
     // Teleport to second portal position
     snake.setHeadPosition(portals_.second.getX(), portals_.second.getY());
+    spawnPortal();
   }
   // Check if head collides with second portal
   else if (headX == portals_.second.getX() && headY == portals_.second.getY()) {
     // Teleport to first portal position
     snake.setHeadPosition(portals_.first.getX(), portals_.first.getY());
+    spawnPortal();
   }
+
+  
 }
 
 bool Model::isPositionFree(int x, int y) const {
